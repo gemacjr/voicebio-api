@@ -5,13 +5,13 @@ meta {
 }
 
 get {
-  url: {{baseUrl}}/management/metrics/http.server.requests?tag=uri:/api/mbta/routes/{routeId}
+  url: {{baseUrl}}/management/metrics/http.server.requests?tag=uri:/api/mbta/routes/%7BrouteId%7D
   body: none
   auth: inherit
 }
 
 params:query {
-  tag: uri:/api/mbta/routes/{routeId}
+  tag: uri:/api/mbta/routes/%7BrouteId%7D
 }
 
 tests {
@@ -26,4 +26,9 @@ tests {
     console.log("statuses seen: " + status.values);
     expect(status.values).to.include("200");
   });
+}
+
+docs {
+  The tag value is the URI template /api/mbta/routes/{routeId}, percent-encoded (%7B %7D):
+  Tomcat rejects raw braces in a query string with 400.
 }

@@ -47,6 +47,8 @@ export JAVA_HOME=$(/usr/libexec/java_home -v 21)   # or: sdk env   (reads .sdkma
 Health: `http://localhost:8081/management/health`. With the `dev` profile, OpenAPI docs are at `/v3/api-docs`.
 
 **Bruno**: open `bruno/` as a collection in [Bruno](https://www.usebruno.com), pick the `local` environment, run it.
+Or from the command line (app running): `cd bruno && npx --yes @usebruno/cli@4.3.0 run --env local` (30 requests,
+40 tests).
 
 ## Logging and metrics
 

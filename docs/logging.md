@@ -273,7 +273,7 @@ curl -X POST -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/jso
      -d '{"configuredLevel":"DEBUG"}' localhost:8081/management/loggers/com.example.service
 ```
 
-Reset with `{"configuredLevel": null}`. The Bruno folder *3 Observability* has these requests.
+Reset with `{"configuredLevel": null}`. The Bruno folder *6 Observability* has these requests.
 
 ## Best practices
 

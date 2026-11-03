@@ -24,7 +24,7 @@ description: The test pyramid, unit vs integration tests, mocking HTTP and proto
 | Architecture test | Surefire | 1 | `TechnicalStructureTest` (ArchUnit) |
 | BDD scenarios | Surefire | 2 | `CucumberTest` |
 | Load test | On demand | 1 simulation | `MbtaSimulation` (Gatling) |
-| Live API checks | On demand | 30 requests | `bruno/` collection |
+| Live API checks | On demand (Bruno CLI) | 30 requests, 40 tests | `bruno/` collection |
 
 Everything runs on **JDK 21** (the enforcer rejects other versions):
 
@@ -218,6 +218,29 @@ caching; running it repeatedly in a short time against a fresh app can hit the l
 Do not run `./mvnw verify` against an app started with `java -jar target/*.jar`: `verify` repackages that jar while the
 JVM runs from it, and the app fails with `NoClassDefFoundError`. Start the app with `./mvnw` or a container.
 
+## Bruno collection
+
+`bruno/` holds 30 requests with 40 tests, for interactive demos and manual checks. Run the whole collection with the
+Bruno CLI against a running app:
+
+```bash
+./mvnw                                                     # terminal 1
+cd bruno && npx --yes @usebruno/cli@4.3.0 run --env local  # terminal 2
+```
+
+Folders run in name order: **1 Auth → 2 MBTA V3 → 4 Transit → 5 Route board → 6 Observability**. Observability runs
+last on purpose: it inspects the metrics, cache hits and timers that the earlier requests produced. Verified with the
+CLI against a freshly started app: 30/30 requests, 40/40 tests, 9 calls to MBTA.
+
+{: .lesson }
+The first CLI run failed 3 requests that a `curl` replay had passed: the observability folder ran *before* the traffic
+it was meant to observe, and a URL contained raw `{routeId}` braces, which Tomcat rejects in a query string with 400
+(the hand-written `curl` had them percent-encoded). Run collections with the tool your team uses, not an imitation.
+
+{: .warning }
+A cold run makes about 9 MBTA calls; MBTA allows 20 per minute without a key, counted per client. Two cold runs within
+a minute can return 503 `MBTA API rate limited`. Set `MBTA_API_KEY`, or wait for the `Retry-After`.
+
 ## Architecture tests
 
 `TechnicalStructureTest` fails the build when a dependency breaks the layering ([Architecture](architecture.md)). It
@@ -235,6 +258,7 @@ and web layers need them.
 | `./mvnw` never started (missing `no.yml`) | Running the documented command | Every `java -jar` check |
 | Adding `direction_id` broke a strict JSON schema | Karate contract test | Protobuf clients (they ignore new fields, by design) |
 | Empty `${VAR:}` default disabled Dynatrace export silently | Capture server on OneAgent's port | Startup (nothing failed) |
+| Bruno: raw `{routeId}` in a query string (Tomcat 400); folder order | Running the real Bruno CLI | A hand-written `curl` replay |
 | `filter[location_type]=0` returned no platforms | Probing the real V3 API | Would have been a fixture-shaped assumption |
 
 {: .lesson }

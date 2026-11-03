@@ -169,7 +169,7 @@ Base path `/management`. Exposed:
 | `health`, `health/liveness`, `health/readiness` | Public | Load balancer and Kubernetes probes |
 | `info` | Public | Build and git info |
 | `prometheus` | Public | Prometheus and the CloudWatch Lambda (**off** in `prod` unless `MANAGEMENT_PROMETHEUS_METRICS_EXPORT_ENABLED=true`) |
-| `metrics`, `metrics/{name}` | Admin | Ad-hoc inspection (Bruno *3 Observability*) |
+| `metrics`, `metrics/{name}` | Admin | Ad-hoc inspection (Bruno *6 Observability*) |
 | `loggers` | Admin | Read and change log levels at runtime |
 | `env`, `configprops` | Admin | Effective configuration (values masked as `******`) |
 | `caches`, `threaddump`, `logfile` | Admin | Diagnostics |

@@ -42,9 +42,9 @@ In Bruno: **Open Collection** → `bruno/` → environment **local**.
 |---|---|---|
 | **1 Auth** | Get token · Request without token | JWT security; the token is reused by every request |
 | **2 MBTA V3 (REST)** | Subway routes · Red Line · Unknown route · Invalid id · Stations · Arrivals · Alerts · Invalid limit | REST client on a JSON:API, caching, validation, RFC 7807 errors |
-| **3 Observability** | Health · Metrics · Service timer · Inbound/Outbound HTTP · Cache hits · Rate limit · Prometheus · Log levels · Correlated request | Micrometer, Actuator, MDC |
 | **4 Transit (protobuf)** | JSON · protobuf · Red line · 404 · invalid limit | Protobuf feed in, protobuf or JSON out |
 | **5 Route board (combined)** | Red Line live · Orange Line live · Unknown route | REST + protobuf in parallel, joined, partial failure |
+| **6 Observability** | Health · Metrics · Service timer · Inbound/Outbound HTTP · Cache hits · Rate limit · Prometheus · Log levels · Correlated request | Micrometer, Actuator, MDC |
 
 {: .tip }
 Run the whole collection first (**Run** on the collection) to show everything green, then go request by request.
@@ -65,7 +65,7 @@ Run the whole collection first (**Run** on the collection) to show everything gr
 3. **Next arrivals at Park Street**: realtime predictions, cached 15 s.
 4. **Unknown route (404)** and **Invalid route id (400)**: MBTA's 404 becomes our RFC 7807 problem; an invalid id
    never reaches MBTA.
-5. **3 Observability / MBTA rate limit remaining**: "20 requests/minute without a key; caching keeps us far below."
+5. **6 Observability / MBTA rate limit remaining**: "20 requests/minute without a key; caching keeps us far below."
 
 See [HTTP clients](http-clients.md).
 
@@ -106,7 +106,7 @@ SPRING_PROFILES_ACTIVE=dev,fluentd FLUENTD_HOST=localhost ./mvnw
 docker compose -f src/main/docker/fluentd.yml logs -f
 ```
 
-Send **3 Observability / Correlated request (X-Request-Id)**: Fluentd prints JSON records with
+Send **6 Observability / Correlated request (X-Request-Id)**: Fluentd prints JSON records with
 `"requestId":"bruno-demo-1"`, including the ones from the `upstream-*` virtual threads. Splunk HEC works the same way
 with the `splunk` profile. See [Logging & metrics platforms](vendor-integrations.md).
 
