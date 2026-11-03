@@ -1,8 +1,7 @@
 package com.example.config;
 
 import jakarta.servlet.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.web.server.*;
 import org.springframework.boot.web.servlet.ServletContextInitializer;
 import org.springframework.context.annotation.Bean;
@@ -12,40 +11,38 @@ import org.springframework.util.CollectionUtils;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
-import tech.jhipster.config.JHipsterProperties;
 
 /**
  * Configuration of web application with Servlet 3.0 APIs.
  */
 @Configuration
+@Slf4j
 public class WebConfigurer implements ServletContextInitializer {
-
-    private static final Logger LOG = LoggerFactory.getLogger(WebConfigurer.class);
 
     private final Environment env;
 
-    private final JHipsterProperties jHipsterProperties;
+    private final ApplicationProperties applicationProperties;
 
-    public WebConfigurer(Environment env, JHipsterProperties jHipsterProperties) {
+    public WebConfigurer(Environment env, ApplicationProperties applicationProperties) {
         this.env = env;
-        this.jHipsterProperties = jHipsterProperties;
+        this.applicationProperties = applicationProperties;
     }
 
     @Override
     public void onStartup(ServletContext servletContext) {
         if (env.getActiveProfiles().length != 0) {
-            LOG.info("Web application configuration, using profiles: {}", (Object[]) env.getActiveProfiles());
+            log.info("Web application configuration, using profiles: {}", (Object[]) env.getActiveProfiles());
         }
 
-        LOG.info("Web application fully configured");
+        log.info("Web application fully configured");
     }
 
     @Bean
     public CorsFilter corsFilter() {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        CorsConfiguration config = jHipsterProperties.getCors();
+        CorsConfiguration config = applicationProperties.getCors();
         if (!CollectionUtils.isEmpty(config.getAllowedOrigins()) || !CollectionUtils.isEmpty(config.getAllowedOriginPatterns())) {
-            LOG.debug("Registering CORS filter");
+            log.debug("Registering CORS filter");
             source.registerCorsConfiguration("/api/**", config);
             source.registerCorsConfiguration("/management/**", config);
             source.registerCorsConfiguration("/v3/api-docs", config);

@@ -1,0 +1,18 @@
+meta {
+  name: Get log level
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{baseUrl}}/management/loggers/com.example.service
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("returns the effective level", function () {
+    expect(res.status).to.equal(200);
+    console.log("com.example.service effective level: " + res.body.effectiveLevel);
+  });
+}

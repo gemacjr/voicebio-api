@@ -1,0 +1,18 @@
+{
+  "data": [
+    {
+      "id": "Red",
+      "type": "route",
+      "attributes": { "long_name": "Red Line", "short_name": "", "color": "DA291C", "text_color": "FFFFFF", "type": 1, "description": "Rapid Transit", "direction_names": ["South", "North"], "direction_destinations": ["Ashmont/Braintree", "Alewife"], "sort_order": 10010 },
+      "relationships": { "line": { "data": { "id": "line-Red", "type": "line" } } },
+      "links": { "self": "/routes/Red" }
+    },
+    {
+      "id": "Green-B",
+      "type": "route",
+      "attributes": { "long_name": "Green Line B", "short_name": "B", "color": "00843D", "text_color": "FFFFFF", "type": 0, "description": "Rapid Transit", "direction_names": ["West", "East"], "direction_destinations": ["Boston College", "Government Center"] },
+      "relationships": { "line": { "data": { "id": "line-Green", "type": "line" } } }
+    }
+  ],
+  "jsonapi": { "version": "1.0" }
+}

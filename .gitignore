@@ -1,20 +1,4 @@
 ######################
-# Node
-######################
-/node/
-node_tmp/
-node_modules/
-npm-debug.log.*
-/.awcache/*
-/.cache-loader/*
-/dist/
-
-######################
-# SASS
-######################
-.sass-cache/
-
-######################
 # Eclipse
 ######################
 *.pydevproject
@@ -141,13 +125,3 @@ Desktop.ini
 ######################
 !.mvn/wrapper/maven-wrapper.jar
 
-######################
-# ESLint
-######################
-.eslintcache
-
-######################
-# Code coverage
-######################
-coverage/
-.nyc_output/

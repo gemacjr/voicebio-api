@@ -1,0 +1,13 @@
+# Local Fluentd (forward protocol) to try the "fluentd" logging profile:
+#   docker compose -f src/main/docker/fluentd.yml up -d
+#   SPRING_PROFILES_ACTIVE=dev,fluentd FLUENTD_HOST=localhost ./mvnw
+#   docker compose -f src/main/docker/fluentd.yml logs -f      # records printed as they arrive
+name: voicebioapi-logging
+services:
+  fluentd:
+    image: fluent/fluentd:v1.19.0-debian-1.0
+    volumes:
+      - ./fluentd/fluent.conf:/fluentd/etc/fluent.conf:ro
+    ports:
+      - 127.0.0.1:24224:24224
+      - 127.0.0.1:24224:24224/udp

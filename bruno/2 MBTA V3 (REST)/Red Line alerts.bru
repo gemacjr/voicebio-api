@@ -1,0 +1,18 @@
+meta {
+  name: Red Line alerts
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/api/mbta/routes/Red/alerts
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("current service alerts", function () {
+    expect(res.status).to.equal(200);
+    res.body.forEach((a) => expect(a).to.include.keys("id", "effect", "header"));
+  });
+}

@@ -1,0 +1,24 @@
+meta {
+  name: Next arrivals at Park Street
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/api/mbta/stops/place-pktrm/predictions?routeId=Red&limit=5
+  body: none
+  auth: inherit
+}
+
+params:query {
+  routeId: Red
+  limit: 5
+}
+
+tests {
+  test("Red line predictions, soonest first", function () {
+    expect(res.status).to.equal(200);
+    expect(res.body.length).to.be.at.most(5);
+    res.body.forEach((p) => expect(p.routeId).to.equal("Red"));
+  });
+}

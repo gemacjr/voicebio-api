@@ -15,7 +15,6 @@ import org.springframework.mock.env.MockEnvironment;
 import org.springframework.mock.web.MockServletContext;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import tech.jhipster.config.JHipsterProperties;
 
 /**
  * Unit tests for the {@link WebConfigurer} class.
@@ -28,7 +27,7 @@ class WebConfigurerTest {
 
     private MockEnvironment env;
 
-    private JHipsterProperties props;
+    private ApplicationProperties props;
 
     @BeforeEach
     void setup() {
@@ -37,7 +36,7 @@ class WebConfigurerTest {
         doReturn(mock(ServletRegistration.Dynamic.class)).when(servletContext).addServlet(anyString(), any(Servlet.class));
 
         env = new MockEnvironment();
-        props = new JHipsterProperties();
+        props = new ApplicationProperties();
 
         webConfigurer = new WebConfigurer(env, props);
     }

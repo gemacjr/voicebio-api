@@ -1,0 +1,24 @@
+meta {
+  name: Red Line stations
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/api/mbta/routes/Red/stations
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("stations in order, each with its platforms", function () {
+    expect(res.status).to.equal(200);
+    expect(res.body.map((s) => s.name)).to.include("Park Street");
+    expect(res.body[0].platforms).to.be.an("array");
+  });
+}
+
+docs {
+  One V3 call with include=child_stops: stations in data[], platforms in included[].
+  Platform ids (e.g. 70076) are what the realtime feed reports; the route board uses this to name them.
+}

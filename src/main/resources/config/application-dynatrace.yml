@@ -1,0 +1,24 @@
+# ===================================================================
+# Profile "dynatrace": Dynatrace OneAgent mode.
+#
+# OneAgent, installed on the host or injected into the container, instruments the JVM itself:
+# requests, outbound HTTP calls, traces (PurePaths) and log correlation need no code or config here.
+#
+# This profile adds the application's own Micrometer metrics (service timers, cache statistics,
+# transit feed age...). With no URI configured, Micrometer sends them to the LOCAL OneAgent metric endpoint
+# (http://localhost:14499/metrics/ingest): no API token, no outbound internet access from the app.
+#
+# Optional environment:
+#   MANAGEMENT_DYNATRACE_METRICS_EXPORT_URI   only if OneAgent's local ingest endpoint differs from the default.
+#   Deliberately NOT mapped here as ${...:}: an empty default is a value, and an empty URI silently disables
+#   the export ("Exporting to endpoint " with nothing after it).
+# ===================================================================
+management:
+  dynatrace:
+    metrics:
+      export:
+        enabled: true
+        step: 1m
+        v2:
+          metric-key-prefix: voicebio
+          enrich-with-dynatrace-metadata: true # adds dt.entity.process_group_instance etc. from OneAgent

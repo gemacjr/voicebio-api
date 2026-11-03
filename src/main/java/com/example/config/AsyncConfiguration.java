@@ -1,8 +1,7 @@
 package com.example.config;
 
 import java.util.concurrent.Executor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.aop.interceptor.AsyncUncaughtExceptionHandler;
 import org.springframework.aop.interceptor.SimpleAsyncUncaughtExceptionHandler;
 import org.springframework.boot.autoconfigure.task.TaskExecutionProperties;
@@ -13,15 +12,13 @@ import org.springframework.scheduling.annotation.AsyncConfigurer;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
-import tech.jhipster.async.ExceptionHandlingAsyncTaskExecutor;
 
 @Configuration
 @EnableAsync
 @EnableScheduling
 @Profile("!testdev & !testprod")
+@Slf4j
 public class AsyncConfiguration implements AsyncConfigurer {
-
-    private static final Logger LOG = LoggerFactory.getLogger(AsyncConfiguration.class);
 
     private final TaskExecutionProperties taskExecutionProperties;
 
@@ -32,13 +29,14 @@ public class AsyncConfiguration implements AsyncConfigurer {
     @Override
     @Bean(name = "taskExecutor")
     public Executor getAsyncExecutor() {
-        LOG.debug("Creating Async Task Executor");
+        log.debug("Creating Async Task Executor");
         var executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(taskExecutionProperties.getPool().getCoreSize());
         executor.setMaxPoolSize(taskExecutionProperties.getPool().getMaxSize());
         executor.setQueueCapacity(taskExecutionProperties.getPool().getQueueCapacity());
         executor.setThreadNamePrefix(taskExecutionProperties.getThreadNamePrefix());
-        return new ExceptionHandlingAsyncTaskExecutor(executor);
+        executor.setTaskDecorator(new MdcTaskDecorator());
+        return executor;
     }
 
     @Override

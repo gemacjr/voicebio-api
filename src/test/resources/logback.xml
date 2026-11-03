@@ -5,8 +5,7 @@
     <include resource="org/springframework/boot/logging/logback/base.xml"/>
 
     <logger name="com.example" level="INFO"/>
-
-    <logger name="tech.jhipster" level="WARN"/>
+    <logger name="com.intuit.karate" level="INFO"/>
 
     <!-- https://www.testcontainers.org/supported_docker_environment/logging_config/ -->
     <logger name="org.testcontainers" level="INFO"/>
@@ -39,6 +38,5 @@
     <logger name="sun.net.www" level="INFO"/>
     <logger name="sun.rmi.transport" level="WARN"/>
     <logger name="com.tngtech.archunit.core.importer" level="ERROR"/>
-    <!-- jhipster-needle-logback-add-log - JHipster will add a new log with level -->
 
 </configuration>

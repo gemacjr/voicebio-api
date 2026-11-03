@@ -3,8 +3,6 @@
 #
 # This configuration is used for unit/integration tests.
 #
-# More information on profiles: https://www.jhipster.tech/profiles/
-# More information on configuration properties: https://www.jhipster.tech/common-application-properties/
 # ===================================================================
 
 # ===================================================================
@@ -51,42 +49,26 @@ server:
   address: localhost
 
 # ===================================================================
-# JHipster specific properties
-#
-# Full reference is available at: https://www.jhipster.tech/common-application-properties/
+# Application specific properties (bound to the ApplicationProperties class)
 # ===================================================================
-jhipster:
-  mail:
-    from: voicebioApi@localhost.com
-    base-url: http://127.0.0.1:8080
-  logging:
-    # To test json console appender
-    use-json-format: false
-    logstash:
-      enabled: false
-      host: localhost
-      port: 5000
-      ring-buffer-size: 512
+application:
   security:
-    authentication:
-      jwt:
-        # This token must be encoded using Base64 (you can type `echo 'secret-key'|base64` on your command line)
-        base64-secret: OWYyYTg5MDcwMDM5MTAyOWZhMDAzNjQ4MGUzZjc1YTYwOThmZGJlOGE0ZTYzNTE1N2E1NDUyM2IyYTBkMzBhMzRkNTY3ZjZhMDg0YzFkZmFjMjFjNjNiNzNhODRhM2NkMmRiNDhmMTA5ZWI0YzRjOGFlNTA3YWU3OWM4ZWM4Zjg=
-        # Token is valid 24 hours
-        token-validity-in-seconds: 86400
-        token-validity-in-seconds-for-remember-me: 86400
+    jwt:
+      # This token must be encoded using Base64 (you can type `echo 'secret-key'|base64` on your command line)
+      base64-secret: OWYyYTg5MDcwMDM5MTAyOWZhMDAzNjQ4MGUzZjc1YTYwOThmZGJlOGE0ZTYzNTE1N2E1NDUyM2IyYTBkMzBhMzRkNTY3ZjZhMDg0YzFkZmFjMjFjNjNiNzNhODRhM2NkMmRiNDhmMTA5ZWI0YzRjOGFlNTA3YWU3OWM4ZWM4Zjg=
 
-# ===================================================================
-# Application specific properties
-# Add your own application properties here, see the ApplicationProperties class
-# to have type-safe configuration, like in the JHipsterProperties above
-#
-# More documentation is available at:
-# https://www.jhipster.tech/common-application-properties/
-# ===================================================================
-
-# application:
 management:
   health:
     mail:
       enabled: false
+  # This file replaces src/main/resources/config/application.yml in tests, so the
+  # "exporters off by default" settings must be repeated here.
+  datadog:
+    metrics:
+      export:
+        enabled: false
+  dynatrace:
+    metrics:
+      export:
+        enabled: false
+

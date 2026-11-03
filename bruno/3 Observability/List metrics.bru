@@ -1,0 +1,21 @@
+meta {
+  name: List metrics
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/management/metrics
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("returns 200 (requires ROLE_ADMIN)", function () {
+    expect(res.status).to.equal(200);
+  });
+
+  test("includes the application metrics", function () {
+    expect(res.body.names).to.include.members(["mbta.service", "mbta.ratelimit.remaining", "route.board", "transit.feed.age", "http.server.requests", "http.client.requests", "cache.gets"]);
+  });
+}

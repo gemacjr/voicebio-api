@@ -1,0 +1,10 @@
+{
+  "data": [
+    {
+      "id": "1037418",
+      "type": "alert",
+      "attributes": { "header": "Braintree Station notice: Premium parking is available at this location.", "effect": "NOTICE", "severity": 1, "lifecycle": "ONGOING", "active_period": [ { "start": "2026-10-07T15:03:54-04:00", "end": null } ] }
+    }
+  ],
+  "jsonapi": { "version": "1.0" }
+}

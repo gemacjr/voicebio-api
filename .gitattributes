@@ -101,7 +101,6 @@ TODO            text
 .gitconfig      text
 .gitignore      text
 .htaccess       text
-*.npmignore     text
 
 ## HEROKU
 Procfile        text

@@ -1,0 +1,29 @@
+meta {
+  name: Cache hits and misses
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/management/metrics/cache.gets?tag=cache:mbtaRoutes&tag=result:hit
+  body: none
+  auth: inherit
+}
+
+params:query {
+  tag: cache:mbtaRoutes
+  tag: result:hit
+}
+
+tests {
+  test("shows cache hits on the MBTA routes cache", function () {
+    expect(res.status).to.equal(200);
+    const hits = res.body.measurements.find((m) => m.statistic === "COUNT").value;
+    console.log("mbtaRoutes cache hits: " + hits);
+    expect(hits).to.be.at.least(1);
+  });
+}
+
+docs {
+  Change `result:hit` to `result:miss` to see misses.
+}

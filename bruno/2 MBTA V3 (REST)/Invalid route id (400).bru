@@ -1,0 +1,17 @@
+meta {
+  name: Invalid route id (400)
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/mbta/routes/Red%20Line!
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("rejected before it reaches MBTA's URL, our cache keys or our logs", function () {
+    expect(res.status).to.equal(400);
+  });
+}

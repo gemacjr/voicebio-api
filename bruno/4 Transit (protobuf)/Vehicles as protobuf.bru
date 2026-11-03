@@ -1,0 +1,43 @@
+meta {
+  name: Vehicles as protobuf
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/transit/vehicles?limit=5
+  body: none
+  auth: inherit
+}
+
+params:query {
+  limit: 5
+}
+
+headers {
+  Accept: application/x-protobuf
+}
+
+tests {
+  test("returns binary protobuf", function () {
+    expect(res.status).to.equal(200);
+    expect(res.headers["content-type"]).to.contain("application/x-protobuf");
+  });
+
+  test("names the message and schema it contains", function () {
+    expect(res.headers["x-protobuf-message"]).to.equal("voicebio.transit.v1.VehicleList");
+    expect(res.headers["x-protobuf-schema"]).to.equal("voicebio/transit/v1/transit.proto");
+  });
+}
+
+docs {
+  Same endpoint, same data: only the Accept header changed. The body is binary (Bruno shows it as text).
+  Decode it with the generated class (see the Karate transit.feature), or inspect it without the schema:
+
+    curl -s -H "Authorization: Bearer $TOKEN" -H 'Accept: application/x-protobuf' \
+      'localhost:8081/api/transit/vehicles?limit=5' | protoc --decode_raw
+
+  (--decode_raw shows field numbers instead of names: 3 = vehicles, 1 = vehicle_id... as in transit.proto)
+
+  Compare the response size with "Vehicles as JSON": protobuf is about 4x smaller.
+}

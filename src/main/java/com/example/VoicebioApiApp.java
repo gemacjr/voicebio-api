@@ -7,22 +7,19 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.core.env.Environment;
-import tech.jhipster.config.DefaultProfileUtil;
-import tech.jhipster.config.JHipsterConstants;
 
 @SpringBootApplication()
 @EnableConfigurationProperties({ ApplicationProperties.class })
+@Slf4j
 public class VoicebioApiApp {
-
-    private static final Logger LOG = LoggerFactory.getLogger(VoicebioApiApp.class);
 
     private final Environment env;
 
@@ -34,25 +31,21 @@ public class VoicebioApiApp {
      * Initializes voicebioApi.
      * <p>
      * Spring profiles can be configured with a program argument --spring.profiles.active=your-active-profile
-     * <p>
-     * You can find more information on how profiles work with JHipster on <a href="https://www.jhipster.tech/profiles/">https://www.jhipster.tech/profiles/</a>.
      */
     @PostConstruct
     public void initApplication() {
         Collection<String> activeProfiles = List.of(env.getActiveProfiles());
         if (
-            activeProfiles.contains(JHipsterConstants.SPRING_PROFILE_DEVELOPMENT) &&
-            activeProfiles.contains(JHipsterConstants.SPRING_PROFILE_PRODUCTION)
+            activeProfiles.contains(SpringProfiles.DEVELOPMENT) && activeProfiles.contains(SpringProfiles.PRODUCTION)
         ) {
-            LOG.error(
+            log.error(
                 "You have misconfigured your application! It should not run " + "with both the 'dev' and 'prod' profiles at the same time."
             );
         }
         if (
-            activeProfiles.contains(JHipsterConstants.SPRING_PROFILE_DEVELOPMENT) &&
-            activeProfiles.contains(JHipsterConstants.SPRING_PROFILE_CLOUD)
+            activeProfiles.contains(SpringProfiles.DEVELOPMENT) && activeProfiles.contains(SpringProfiles.CLOUD)
         ) {
-            LOG.error(
+            log.error(
                 "You have misconfigured your application! It should not " + "run with both the 'dev' and 'cloud' profiles at the same time."
             );
         }
@@ -65,9 +58,19 @@ public class VoicebioApiApp {
      */
     public static void main(String[] args) {
         var app = new SpringApplication(VoicebioApiApp.class);
-        DefaultProfileUtil.addDefaultProfile(app);
+        addDefaultProfile(app);
         Environment env = app.run(args).getEnvironment();
         logApplicationStartup(env);
+    }
+
+    /**
+     * Use the "dev" profile when none is configured (via {@code spring.profiles.active}
+     * or the {@code SPRING_PROFILES_ACTIVE} environment variable).
+     *
+     * @param app the Spring application.
+     */
+    public static void addDefaultProfile(SpringApplication app) {
+        app.setDefaultProperties(Map.of("spring.profiles.default", SpringProfiles.DEVELOPMENT));
     }
 
     private static void logApplicationStartup(Environment env) {
@@ -83,9 +86,9 @@ public class VoicebioApiApp {
         try {
             hostAddress = InetAddress.getLocalHost().getHostAddress();
         } catch (UnknownHostException e) {
-            LOG.warn("The host name could not be determined, using `localhost` as fallback");
+            log.warn("The host name could not be determined, using `localhost` as fallback");
         }
-        LOG.info(
+        log.info(
             CRLFLogConverter.CRLF_SAFE_MARKER,
             """
 

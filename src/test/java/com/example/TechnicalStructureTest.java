@@ -12,7 +12,6 @@ import com.tngtech.archunit.lang.ArchRule;
 @AnalyzeClasses(packagesOf = VoicebioApiApp.class, importOptions = DoNotIncludeTests.class)
 class TechnicalStructureTest {
 
-    // prettier-ignore
     @ArchTest
     static final ArchRule respectsTechnicalArchitectureLayers = layeredArchitecture()
         .consideringAllDependencies()
@@ -23,7 +22,7 @@ class TechnicalStructureTest {
         .layer("Security").definedBy("..security..")
 
         .whereLayer("Config").mayNotBeAccessedByAnyLayer()
-        .whereLayer("Client").mayNotBeAccessedByAnyLayer()
+        .whereLayer("Client").mayOnlyBeAccessedByLayers("Service", "Config")
         .whereLayer("Web").mayOnlyBeAccessedByLayers("Config")
         .whereLayer("Service").mayOnlyBeAccessedByLayers("Web", "Config")
         .whereLayer("Security").mayOnlyBeAccessedByLayers("Config", "Client", "Service", "Web")

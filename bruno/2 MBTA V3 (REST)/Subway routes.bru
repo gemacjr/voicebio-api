@@ -1,0 +1,29 @@
+meta {
+  name: Subway routes
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/mbta/routes
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("returns 200 with subway routes", function () {
+    expect(res.status).to.equal(200);
+    const ids = res.body.map((r) => r.id);
+    expect(ids).to.include("Red");
+    res.body.forEach((r) => expect(r.kind).to.be.oneOf(["SUBWAY", "LIGHT_RAIL"]));
+  });
+
+  test("gets a generated correlation id", function () {
+    expect(res.headers["x-request-id"]).to.match(/^[0-9a-f-]{36}$/);
+  });
+}
+
+docs {
+  MBTA V3 GET /routes?filter[type]=0,1 (JSON:API) reshaped into flat JSON. Cached for an hour:
+  run it twice and the console shows one "MBTA V3 GET" line.
+}

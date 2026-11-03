@@ -1,0 +1,32 @@
+meta {
+  name: Red Line live
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/routes/Red/live
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("both sources answered", function () {
+    expect(res.status).to.equal(200);
+    expect(res.body.sources).to.deep.equal({ v3: "OK", gtfsRealtime: "OK" });
+  });
+
+  test("realtime positions carry station names from V3", function () {
+    const withStop = res.body.vehicles.filter((v) => v.stop);
+    withStop.forEach((v) => expect(v.stop.name, "vehicle " + v.vehicleId).to.be.a("string"));
+    console.log(res.body.route.name + ": " + res.body.vehicles.length + " vehicles, " + withStop.length + " at or heading to a station");
+  });
+}
+
+docs {
+  One request, two upstream sources fetched IN PARALLEL on virtual threads:
+    - MBTA V3 REST (JSON:API): route name, colour, directions, station + platform names
+    - GTFS-Realtime (protobuf): live vehicle positions
+  Each vehicle's platform id (from protobuf) is joined to its station name (from REST), and its
+  direction_id to the route's destination. If one source fails, "sources" says which and the rest is returned.
+}

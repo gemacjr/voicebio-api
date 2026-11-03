@@ -1,0 +1,19 @@
+meta {
+  name: Red Line
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/mbta/routes/Red
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("route with named directions", function () {
+    expect(res.status).to.equal(200);
+    expect(res.body.name).to.equal("Red Line");
+    expect(res.body.directions.map((d) => d.destination)).to.include("Alewife");
+  });
+}

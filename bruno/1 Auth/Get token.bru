@@ -1,0 +1,37 @@
+meta {
+  name: Get token
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/authenticate
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "username": "demo"
+  }
+}
+
+script:post-response {
+  bru.setVar("token", res.body.id_token);
+}
+
+tests {
+  test("returns 200", function () {
+    expect(res.status).to.equal(200);
+  });
+
+  test("returns a bearer token", function () {
+    expect(res.body.token_type).to.equal("Bearer");
+    expect(res.body.id_token).to.be.a("string").and.not.be.empty;
+  });
+}
+
+docs {
+  Dev profile only. Issues a JWT signed with the app's secret, valid for 1 hour.
+  Optional body fields: `username`, `authorities` (e.g. `["ROLE_USER"]` to show a 403 on /management/metrics).
+}

@@ -3,8 +3,6 @@
 #
 # This configuration overrides the application.yml file.
 #
-# More information on profiles: https://www.jhipster.tech/profiles/
-# More information on configuration properties: https://www.jhipster.tech/common-application-properties/
 # ===================================================================
 
 # ===================================================================
@@ -16,7 +14,6 @@
 logging:
   level:
     ROOT: INFO
-    tech.jhipster: INFO
     com.example: INFO
 
 management:
@@ -24,12 +21,6 @@ management:
     metrics:
       export:
         enabled: false
-  zipkin: # Use the "zipkin" Maven profile to have the Spring Cloud Zipkin dependencies
-    tracing:
-      endpoint: http://localhost:9411/api/v2/spans
-  tracing:
-    sampling:
-      probability: 1.0 # report 100% of traces
 
 spring:
   devtools:
@@ -68,39 +59,11 @@ server:
     min-response-size: 1024
 
 # ===================================================================
-# JHipster specific properties
-#
-# Full reference is available at: https://www.jhipster.tech/common-application-properties/
+# Application specific properties (bound to the ApplicationProperties class)
 # ===================================================================
 
-jhipster:
-  http:
-    cache: # Used by the CachingHttpHeadersFilter
-      timeToLiveInDays: 1461
+application:
   cache: # Cache configuration
     caffeine: # Caffeine configuration
       time-to-live-seconds: 3600 # By default objects stay 1 hour in the cache. This sets expireAfterWrite in Caffeine (https://github.com/ben-manes/caffeine/wiki/Eviction#time-based)
       max-entries: 1000 # Number of objects in each cache entry
-  security:
-    authentication:
-      jwt:
-        # Token is valid 24 hours
-        token-validity-in-seconds: 86400
-        token-validity-in-seconds-for-remember-me: 2592000
-  logging:
-    use-json-format: false # By default, logs are not in Json format
-    logstash: # Forward logs to logstash over a socket, used by LoggingConfiguration
-      enabled: false
-      host: localhost
-      port: 5000
-      ring-buffer-size: 512
-# ===================================================================
-# Application specific properties
-# Add your own application properties here, see the ApplicationProperties class
-# to have type-safe configuration, like in the JHipsterProperties above
-#
-# More documentation is available at:
-# https://www.jhipster.tech/common-application-properties/
-# ===================================================================
-
-# application:

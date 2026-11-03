@@ -1,0 +1,23 @@
+meta {
+  name: Reset log level
+  type: http
+  seq: 11
+}
+
+post {
+  url: {{baseUrl}}/management/loggers/com.example.service
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "configuredLevel": null
+  }
+}
+
+tests {
+  test("level reset to inherited", function () {
+    expect(res.status).to.equal(204);
+  });
+}

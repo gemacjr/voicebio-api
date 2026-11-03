@@ -41,6 +41,16 @@ public class ExceptionTranslatorTestController {
         throw new TestResponseStatusException();
     }
 
+    @GetMapping("/bad-request-alert")
+    public void badRequestAlert() {
+        throw new BadRequestAlertException("A new thing cannot already have an ID", "thing", "idexists");
+    }
+
+    @GetMapping("/retryable")
+    public void retryable() {
+        throw new TestRetryableException();
+    }
+
     @GetMapping("/internal-server-error")
     public void internalServerError() {
         throw new RuntimeException();
@@ -63,4 +73,14 @@ public class ExceptionTranslatorTestController {
     @ResponseStatus(value = HttpStatus.BAD_REQUEST, reason = "test response status")
     @SuppressWarnings("serial")
     public static class TestResponseStatusException extends RuntimeException {}
+
+    @org.springframework.web.bind.annotation.ResponseStatus(value = org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE, reason = "test unavailable")
+    @SuppressWarnings("serial")
+    public static class TestRetryableException extends RuntimeException implements com.example.RetryableFailure {
+
+        @Override
+        public long retryAfterSeconds() {
+            return 30;
+        }
+    }
 }

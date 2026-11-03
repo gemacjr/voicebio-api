@@ -1,0 +1,32 @@
+meta {
+  name: Correlated request (X-Request-Id)
+  type: http
+  seq: 12
+}
+
+get {
+  url: {{baseUrl}}/api/routes/Red/live
+  body: none
+  auth: inherit
+}
+
+headers {
+  X-Request-Id: bruno-demo-1
+}
+
+tests {
+  test("returns 200", function () {
+    expect(res.status).to.equal(200);
+  });
+
+  test("echoes the request id we sent", function () {
+    expect(res.headers["x-request-id"]).to.equal("bruno-demo-1");
+  });
+}
+
+docs {
+  Every log line for this request carries [bruno-demo-1]: the controller on the request thread, AND the two
+  parallel upstream calls on their own virtual threads (upstream-N), because MDC is propagated to them.
+  Find them all in the console with:  grep bruno-demo-1
+  Requests without the header get a generated UUID (see the "2 MBTA V3 / Subway routes" response headers).
+}

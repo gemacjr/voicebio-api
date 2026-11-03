@@ -1,0 +1,19 @@
+meta {
+  name: Unknown route (404)
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/mbta/routes/NoSuchRoute
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("MBTA's 404 becomes our RFC 7807 problem", function () {
+    expect(res.status).to.equal(404);
+    expect(res.headers["content-type"]).to.contain("application/problem+json");
+    expect(res.body.title).to.equal("Route not found");
+  });
+}

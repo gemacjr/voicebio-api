@@ -1,0 +1,29 @@
+meta {
+  name: Inbound HTTP requests
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/management/metrics/http.server.requests?tag=uri:/api/mbta/routes/{routeId}
+  body: none
+  auth: inherit
+}
+
+params:query {
+  tag: uri:/api/mbta/routes/{routeId}
+}
+
+tests {
+  test("records requests to /api/mbta/routes/{routeId}", function () {
+    expect(res.status).to.equal(200);
+    const count = res.body.measurements.find((m) => m.statistic === "COUNT").value;
+    expect(count).to.be.at.least(1);
+  });
+
+  test("is broken down by status", function () {
+    const status = res.body.availableTags.find((t) => t.tag === "status");
+    console.log("statuses seen: " + status.values);
+    expect(status.values).to.include("200");
+  });
+}

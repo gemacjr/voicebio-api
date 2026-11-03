@@ -1,0 +1,27 @@
+# ===================================================================
+# Profile "datadog": metrics pushed directly to the Datadog API (agentless).
+#
+# Required environment:
+#   DATADOG_API_KEY     Datadog API key
+# Optional:
+#   DATADOG_SITE_URI    API endpoint of your Datadog site, default US1 https://api.datadoghq.com
+#                       (EU: https://api.datadoghq.eu, US3: https://api.us3.datadoghq.com, US5: https://api.us5.datadoghq.com)
+#   MANAGEMENT_DATADOG_METRICS_EXPORT_APPLICATION_KEY   only to also publish metric metadata (descriptions, units).
+#                       Deliberately NOT mapped here: an empty value still counts as "set" and makes Micrometer
+#                       send one metadata request per metric, which Datadog rejects with 403.
+#
+# Traces: Datadog APM needs the Datadog Agent / dd-java-agent; this profile sends metrics only.
+# Logs: "json-logs" profile + Datadog Agent / log forwarder.
+# ===================================================================
+management:
+  datadog:
+    metrics:
+      export:
+        enabled: true
+        api-key: ${DATADOG_API_KEY}
+        uri: ${DATADOG_SITE_URI:https://api.datadoghq.com}
+        step: 1m
+  metrics:
+    tags:
+      service: ${spring.application.name} # Datadog unified service tagging: service, env, version
+      version: '@project.version@'

@@ -1,0 +1,27 @@
+{
+  "data": [
+    {
+      "id": "prediction-77871159-70076-150",
+      "type": "prediction",
+      "attributes": { "arrival_time": "2026-11-03T16:13:14-05:00", "arrival_uncertainty": 60, "departure_time": "2026-11-03T16:14:28-05:00", "direction_id": 1, "status": null, "stop_sequence": 150 },
+      "relationships": {
+        "route": { "data": { "id": "Red", "type": "route" } },
+        "stop": { "data": { "id": "70076", "type": "stop" } },
+        "trip": { "data": { "id": "77871159", "type": "trip" } },
+        "vehicle": { "data": { "id": "R-548C8C9A", "type": "vehicle" } }
+      }
+    },
+    {
+      "id": "prediction-77871160-70075-60",
+      "type": "prediction",
+      "attributes": { "arrival_time": "2026-11-03T16:16:00-05:00", "departure_time": "2026-11-03T16:16:45-05:00", "direction_id": 0, "status": "Approaching", "stop_sequence": 60 },
+      "relationships": {
+        "route": { "data": { "id": "Red", "type": "route" } },
+        "stop": { "data": { "id": "70075", "type": "stop" } },
+        "trip": { "data": { "id": "77871160", "type": "trip" } },
+        "vehicle": { "data": null }
+      }
+    }
+  ],
+  "jsonapi": { "version": "1.0" }
+}

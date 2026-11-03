@@ -1,0 +1,27 @@
+meta {
+  name: Invalid limit (400)
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/api/transit/vehicles?limit=0
+  body: none
+  auth: inherit
+}
+
+params:query {
+  limit: 0
+}
+
+headers {
+  Accept: application/json
+}
+
+tests {
+  test("parameter validation names the parameter", function () {
+    expect(res.status).to.equal(400);
+    expect(res.body.message).to.equal("error.validation");
+    expect(res.body.fieldErrors[0].field).to.equal("limit");
+  });
+}

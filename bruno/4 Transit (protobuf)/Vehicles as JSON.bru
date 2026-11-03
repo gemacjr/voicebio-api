@@ -1,0 +1,38 @@
+meta {
+  name: Vehicles as JSON
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/transit/vehicles?limit=5
+  body: none
+  auth: inherit
+}
+
+params:query {
+  limit: 5
+}
+
+headers {
+  Accept: application/json
+}
+
+tests {
+  test("returns 200 JSON", function () {
+    expect(res.status).to.equal(200);
+    expect(res.headers["content-type"]).to.contain("application/json");
+  });
+
+  test("is protobuf's canonical JSON (camelCase, RFC 3339 timestamps)", function () {
+    expect(res.body.feedTimestamp).to.match(/^\d{4}-\d{2}-\d{2}T/);
+    expect(res.body.totalInFeed).to.be.a("number");
+    expect(res.body.vehicles.length).to.be.at.most(5);
+    expect(res.body.vehicles[0]).to.include.keys("vehicleId", "routeId", "latitude", "longitude");
+  });
+}
+
+docs {
+  Live MBTA (Boston) vehicle positions, read from the public GTFS-Realtime protobuf feed,
+  mapped to our own transit.proto contract, and rendered as JSON because we asked for JSON.
+}

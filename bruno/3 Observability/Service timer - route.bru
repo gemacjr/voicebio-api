@@ -1,0 +1,29 @@
+meta {
+  name: Service timer - route
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/management/metrics/mbta.service?tag=method:route
+  body: none
+  auth: inherit
+}
+
+params:query {
+  tag: method:route
+}
+
+tests {
+  test("returns timing statistics", function () {
+    expect(res.status).to.equal(200);
+    const stats = Object.fromEntries(res.body.measurements.map((m) => [m.statistic, m.value]));
+    console.log("route calls=" + stats.COUNT + ", total=" + stats.TOTAL_TIME + "s, max=" + stats.MAX + "s");
+    expect(stats.COUNT).to.be.at.least(1);
+  });
+}
+
+docs {
+  Timer created by `@Observed` on MbtaService. COUNT includes cached calls, so MAX (the cache miss)
+  is far above the average. Try `?tag=method:stations`, or the `route.board` and `transit.service` timers.
+}

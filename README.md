@@ -1,185 +1,129 @@
-# voicebioApi
+# Voicebio API
 
-This application was generated using JHipster 9.4.0, you can find documentation and help at [https://www.jhipster.tech/documentation-archive/v9.4.0](https://www.jhipster.tech/documentation-archive/v9.4.0).
+Spring Boot 4 REST microservice on **Java 21**. A stateless JWT resource server meant to sit behind a gateway, serving
+Boston (MBTA) public transit data from a REST API and a Protocol Buffers feed.
 
-This is a "microservice" application intended to be part of a microservice architecture, please refer to the [Doing microservices with JHipster][] page of the documentation for more information.
+📖 **Design guide:** [`docs/`](docs/index.md) explains how this service is built and the Spring Boot practices behind
+it (architecture, REST and protobuf clients, combining sources, errors, security, logging and MDC, metrics, Splunk /
+Fluentd / Prometheus / CloudWatch / Dynatrace, performance, testing incl. Karate, build and Docker), with a step-by-step
+demo script. It is published with GitHub Pages from the `/docs` folder.
 
-## Project Structure
+## Endpoints
 
-Node is required for generation and recommended for development. `package.json` is always generated for a better development experience with prettier, commit hooks, scripts and so on.
+| Endpoint | Source | Notes |
+|---|---|---|
+| `GET /api/mbta/routes?types=0,1` | MBTA V3 REST (JSON:API) | Subway routes by default; cached 1 h |
+| `GET /api/mbta/routes/{routeId}` | MBTA V3 | 404 for an unknown route |
+| `GET /api/mbta/routes/{routeId}/stations` | MBTA V3 | Stations with their platforms |
+| `GET /api/mbta/routes/{routeId}/alerts` | MBTA V3 | Service alerts; cached 15 s |
+| `GET /api/mbta/stops/{stopId}/predictions?routeId=&limit=` | MBTA V3 | Next arrivals; cached 15 s |
+| `GET /api/transit/vehicles?routeId=&limit=` | GTFS-Realtime (protobuf) | `Accept: application/x-protobuf` or JSON |
+| `GET /api/transit/vehicles/{vehicleId}` | GTFS-Realtime | |
+| `GET /api/routes/{routeId}/live` | **Both, in parallel** | Live positions with station names; partial result if one source fails |
 
-In the project root, JHipster generates configuration files for tools like git, prettier, eslint, husky, and others that are well known and you can find references in the web.
+All endpoints need a JWT. With the `dev` profile, `POST /api/authenticate` issues one (dev only, never in prod).
 
-`/src/*` structure follows default Java structure.
+Without an API key MBTA allows 20 requests/minute; the app caches to stay well below. Set `MBTA_API_KEY` (free from
+MBTA) to raise the limit to 1,000.
 
-- `.yo-rc.json` - Yeoman configuration file
-  JHipster configuration is stored in this file at `generator-jhipster` key. You may find `generator-jhipster-*` for specific blueprints configuration.
-- `.yo-resolve` (optional) - Yeoman conflict resolver
-  Allows to use a specific action when conflicts are found skipping prompts for files that matches a pattern. Each line should match `[pattern] [action]` with pattern been a [Minimatch](https://github.com/isaacs/minimatch#minimatch) pattern and action been one of skip (default if omitted) or force. Lines starting with `#` are considered comments and are ignored.
-- `.jhipster/*.json` - JHipster entity configuration files
-- `/src/main/docker` - Docker configurations for the application and services that the application depends on
+## Project structure
+
+- `src/main/java` - application code (`com.example`)
+- `src/main/proto` - Protocol Buffers schemas (vendored GTFS-Realtime, our `transit.proto`), compiled at build time
+- `src/main/resources/config` - Spring configuration per profile (`application-dev.yml`, `application-prod.yml`, ...)
+- `src/main/docker` - Docker Compose files: the app, a local Fluentd (Doppler stand-in), SonarQube
+- `src/test` - unit, integration (`*IT`), Karate, Cucumber and Gatling tests
+- `bruno/` - API collection (auth, MBTA V3, observability, protobuf, route board)
 
 ## Development
 
-To start your application in the dev profile, run:
+The build requires **JDK 21** (the enforcer rejects other versions):
 
 ```bash
-./mvnw
+export JAVA_HOME=$(/usr/libexec/java_home -v 21)   # or: sdk env   (reads .sdkmanrc)
+./mvnw                                               # dev profile on http://localhost:8081
 ```
 
-For further instructions on how to develop with JHipster, have a look at [Using JHipster in development][].
+Health: `http://localhost:8081/management/health`. With the `dev` profile, OpenAPI docs are at `/v3/api-docs`.
 
-## Building for production
+**Bruno**: open `bruno/` as a collection in [Bruno](https://www.usebruno.com), pick the `local` environment, run it.
 
-### Packaging as jar
+## Logging and metrics
 
-To build the final jar and optimize the voicebioApi application for production, run:
+| Profile | Sends | Needs |
+|---|---|---|
+| *(always)* | Prometheus metrics at `/management/prometheus` (also scraped by the CloudWatch-export Lambda) | - |
+| `json-logs` (on in `prod`) | JSON console logs | - |
+| `splunk` | Logs to Splunk HTTP Event Collector | `SPLUNK_HEC_URL`, `SPLUNK_HEC_TOKEN` (optional `SPLUNK_INDEX`, `SPLUNK_SOURCETYPE`) |
+| `fluentd` | Logs to Fluentd / Doppler (forward protocol) | `FLUENTD_HOST` (optional `FLUENTD_PORT`, `FLUENTD_TAG`) |
+| `dynatrace` | App metrics to the local Dynatrace OneAgent (OneAgent also traces) | - |
+| `datadog` | Metrics to Datadog (optional, not in the target stack) | `DATADOG_API_KEY` |
 
 ```bash
-./mvnw -Pprod clean verify
+SPRING_PROFILES_ACTIVE=prod,splunk,fluentd,dynatrace \
+SPLUNK_HEC_URL=https://splunk.example.com:8088 SPLUNK_HEC_TOKEN=... FLUENTD_HOST=doppler.example.com \
+java -jar target/voicebio-api-0.0.1-SNAPSHOT.jar
 ```
 
-To ensure everything worked, run:
+A profile without its required settings stops startup with a clear message. Set `DEPLOY_ENV` (`dev`, `staging`,
+`prod`...) so metrics and logs carry the environment. Details:
+[`docs/vendor-integrations.md`](docs/vendor-integrations.md).
 
-```bash
-java -jar target/*.jar
-```
-
-Refer to [Using JHipster in production][] for more details.
-
-### Packaging as war
-
-To package your application as a war in order to deploy it to an application server, run:
-
-```bash
-./mvnw -Pprod,war clean verify
-```
-
-### JHipster Control Center
-
-JHipster Control Center can help you manage and control your application(s). You can start a local control center server (accessible on http://localhost:7419) with:
-
-```bash
-docker compose -f src/main/docker/jhipster-control-center.yml up
-```
+`splunk-library-javalogging` comes from Splunk's Maven repository (declared in the pom); add it to your corporate
+Maven proxy if you use one.
 
 ## Testing
 
-### Spring Boot tests
-
-To launch your application's tests, run:
-
 ```bash
-./mvnw verify
+./mvnw verify      # unit + integration tests, incl. Karate API tests against mocked MBTA APIs (no network)
 ```
 
-### Gatling
-
-Performance tests are run by [Gatling](https://gatling.io/) and written in Scala. They're located in [src/test/java/gatling/simulations](src/test/java/gatling/simulations).
-
-You can execute all Gatling tests with
+Karate against a running instance (start it with `./mvnw` first; uses the real MBTA APIs):
 
 ```bash
-./mvnw gatling:test
+./mvnw test-compile failsafe:integration-test failsafe:verify -Dit.test=KarateLiveIT -Dkarate.baseUrl=http://localhost:8081
 ```
 
-## Others
+Load test (app running with `dev`):
 
-### Code quality using Sonar
+```bash
+./mvnw gatling:test -Dgatling.simulationClass=gatling.simulations.MbtaSimulation -Dusers=20 -Dramp=10
+```
 
-Sonar is used to analyse code quality. You can start a local Sonar server (accessible on http://localhost:9001) with:
+## Building for production
+
+```bash
+./mvnw -Pprod clean verify
+java -jar target/*.jar
+```
+
+WAR: `./mvnw -Pprod,war clean verify`.
+
+## Docker
+
+Build an image with [Jib](https://github.com/GoogleContainerTools/jib) (no Dockerfile; base `eclipse-temurin:21-jre`,
+non-root):
+
+```bash
+./mvnw -Pprod verify -DskipTests jib:dockerBuild
+# on Apple Silicon / ARM:
+./mvnw -Pprod verify -DskipTests jib:dockerBuild -Djib-maven-plugin.architecture=arm64
+docker compose -f src/main/docker/app.yml up -d --wait
+```
+
+The container honours `APP_SLEEP` (seconds to wait before starting) and `JAVA_OPTS`.
+
+Local log destination for the `fluentd` profile:
+
+```bash
+docker compose -f src/main/docker/fluentd.yml up -d
+SPRING_PROFILES_ACTIVE=dev,fluentd FLUENTD_HOST=localhost ./mvnw
+docker compose -f src/main/docker/fluentd.yml logs -f
+```
+
+## Code quality
 
 ```bash
 docker compose -f src/main/docker/sonar.yml up -d
-```
-
-Note: we have turned off forced authentication redirect for UI in [src/main/docker/sonar.yml](src/main/docker/sonar.yml) for out of the box experience while trying out SonarQube, for real use cases turn it back on.
-
-You can run a Sonar analysis with using the [sonar-scanner](https://docs.sonarqube.org/display/SCAN/Analyzing+with+SonarQube+Scanner) or by using the maven plugin.
-
-Then, run a Sonar analysis:
-
-```bash
 ./mvnw -Pprod clean verify sonar:sonar -Dsonar.login=admin -Dsonar.password=admin
 ```
-
-If you need to re-run the Sonar phase, please be sure to specify at least the `initialize` phase since Sonar properties are loaded from the sonar-project.properties file.
-
-```bash
-./mvnw initialize sonar:sonar -Dsonar.login=admin -Dsonar.password=admin
-```
-
-Additionally, Instead of passing `sonar.password` and `sonar.login` as CLI arguments, these parameters can be configured from [sonar-project.properties](sonar-project.properties) as shown below:
-
-```bash
-sonar.login=admin
-sonar.password=admin
-```
-
-For more information, refer to the [Code quality page][].
-
-### Docker Compose support
-
-JHipster generates a number of Docker Compose configuration files in the [src/main/docker/](src/main/docker/) folder to launch required third party services.
-
-For example, to start required services in Docker containers, run:
-
-```bash
-docker compose -f src/main/docker/services.yml up -d
-```
-
-To stop and remove the containers, run:
-
-```bash
-docker compose -f src/main/docker/services.yml down
-```
-
-[Spring Docker Compose Integration](https://docs.spring.io/spring-boot/reference/features/dev-services.html) is enabled by default. It's possible to disable it in `application.yml`:
-
-```yaml
-spring:
-  ...
-  docker:
-    compose:
-      enabled: false
-```
-
-You can also fully dockerize your application and all the services that it depends on.
-To achieve this, first build a Docker image of your app by running:
-
-```bash
-npm run java:docker
-```
-
-Or build an arm64 Docker image when using an arm64 processor OS, i.e., Apple Silicon chips (M*), running:
-
-```bash
-npm run java:docker:arm64
-```
-
-Then run:
-
-```bash
-docker compose -f src/main/docker/app.yml up -d
-```
-
-For more information refer to [Docker and Docker-Compose](https://www.jhipster.tech/documentation-archive/v9.4.0/docker-compose/), this page also contains information on the Docker Compose sub-generator (`jhipster docker-compose`), which is able to generate Docker configurations for one or several JHipster applications.
-
-## Continuous Integration (optional)
-
-To configure CI for your project, run the ci-cd sub-generator (`jhipster ci-cd`), this will let you generate configuration files for a number of Continuous Integration systems. Consult the [Setting up Continuous Integration](https://www.jhipster.tech/documentation-archive/v9.4.0/setting-up-ci/) page for more information.
-
-## References
-
-- [JHipster Homepage and latest documentation](https://www.jhipster.tech/)
-- [JHipster 9.4.0 archive](https://www.jhipster.tech/documentation-archive/v9.4.0)
-- [Doing microservices with JHipster](https://www.jhipster.tech/documentation-archive/v9.4.0/microservices-architecture/)
-- [Using JHipster in development](https://www.jhipster.tech/documentation-archive/v9.4.0/development/)
-- [Using Docker and Docker-Compose](https://www.jhipster.tech/documentation-archive/v9.4.0/docker-compose)
-- [Using JHipster in production](https://www.jhipster.tech/documentation-archive/v9.4.0/production/)
-- [Running tests page](https://www.jhipster.tech/documentation-archive/v9.4.0/running-tests/)
-- [Code quality page](https://www.jhipster.tech/documentation-archive/v9.4.0/code-quality/)
-- [Setting up Continuous Integration](https://www.jhipster.tech/documentation-archive/v9.4.0/setting-up-ci/)
-- [Node.js](https://nodejs.org/)
-- [NPM](https://www.npmjs.com/)
-- [Gatling](https://gatling.io/)

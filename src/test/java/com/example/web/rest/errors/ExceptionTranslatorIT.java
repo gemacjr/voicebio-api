@@ -97,6 +97,25 @@ class ExceptionTranslatorIT {
     }
 
     @Test
+    void badRequestAlertSendsAlertHeaders() throws Exception {
+        // regression: Spring routes ErrorResponseException subclasses to its own handler, which skipped these headers
+        mockMvc
+            .perform(get("/api/exception-translator-test/bad-request-alert"))
+            .andExpect(status().isBadRequest())
+            .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header().string("X-voicebioApi-error", "error.idexists"))
+            .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header().string("X-voicebioApi-params", "thing"));
+    }
+
+    @Test
+    void retryableFailureSendsRetryAfter() throws Exception {
+        mockMvc
+            .perform(get("/api/exception-translator-test/retryable"))
+            .andExpect(status().isServiceUnavailable())
+            .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header().string("Retry-After", "30"))
+            .andExpect(jsonPath("$.title").value("test unavailable"));
+    }
+
+    @Test
     void testInternalServerError() throws Exception {
         mockMvc
             .perform(get("/api/exception-translator-test/internal-server-error"))

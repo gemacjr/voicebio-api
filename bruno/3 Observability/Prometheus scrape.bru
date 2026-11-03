@@ -1,0 +1,31 @@
+meta {
+  name: Prometheus scrape
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}/management/prometheus
+  body: none
+  auth: none
+}
+
+tests {
+  test("is public and in Prometheus text format", function () {
+    expect(res.status).to.equal(200);
+    expect(res.headers["content-type"]).to.contain("text/plain");
+  });
+
+  test("exposes application metrics with histogram buckets", function () {
+    expect(res.body).to.contain("mbta_ratelimit_remaining");
+    expect(res.body).to.contain("mbta_service_seconds_bucket");
+    expect(res.body).to.contain("http_client_requests_seconds_bucket");
+  });
+}
+
+docs {
+  This is what Prometheus and the CloudWatch-export Lambda scrape. Metric names here are a contract:
+  renaming one breaks the Lambda's CloudWatch metrics and any alarms on them.
+  Percentiles are computed in Prometheus from the histogram buckets, e.g. p95 latency of the service:
+  histogram_quantile(0.95, sum by (le, method) (rate(mbta_service_seconds_bucket[5m])))
+}

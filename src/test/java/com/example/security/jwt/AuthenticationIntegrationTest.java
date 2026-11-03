@@ -1,5 +1,6 @@
 package com.example.security.jwt;
 
+import com.example.config.ApplicationProperties;
 import com.example.config.SecurityConfiguration;
 import com.example.config.SecurityJwtConfiguration;
 import com.example.config.WebConfigurer;
@@ -8,14 +9,13 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.context.SpringBootTest;
-import tech.jhipster.config.JHipsterProperties;
 
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 @SpringBootTest(
     classes = {
-        JHipsterProperties.class,
         WebConfigurer.class,
         SecurityConfiguration.class,
         SecurityJwtConfiguration.class,
@@ -23,4 +23,5 @@ import tech.jhipster.config.JHipsterProperties;
         JwtAuthenticationTestUtils.class,
     }
 )
+@EnableConfigurationProperties(ApplicationProperties.class)
 public @interface AuthenticationIntegrationTest {}

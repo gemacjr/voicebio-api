@@ -1,0 +1,33 @@
+# GitHub Pages site for the Voicebio API design guide.
+# Publish: repo Settings -> Pages -> Source "Deploy from a branch" -> Branch "main" / folder "/docs".
+title: Voicebio API
+description: How the Voicebio API is built, and the Spring Boot design practices behind it.
+remote_theme: just-the-docs/just-the-docs@v0.10.0
+plugins:
+  - jekyll-remote-theme
+
+color_scheme: light
+search_enabled: true
+heading_anchors: true
+back_to_top: true
+back_to_top_text: "Back to top"
+
+# Renders ```mermaid code blocks as diagrams (they also render natively on github.com)
+mermaid:
+  version: "10.9.1"
+
+callouts:
+  note:
+    title: Note
+    color: blue
+  tip:
+    title: Tip
+    color: green
+  warning:
+    title: Watch out
+    color: yellow
+  lesson:
+    title: Lesson learned
+    color: purple
+
+footer_content: "Voicebio API design guide. Generated alongside the code; keep it updated in the same pull request as code changes."

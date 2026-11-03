@@ -1,0 +1,28 @@
+meta {
+  name: Outbound calls to MBTA V3
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/management/metrics/http.client.requests?tag=client.name:api-v3.mbta.com
+  body: none
+  auth: inherit
+}
+
+params:query {
+  tag: client.name:api-v3.mbta.com
+}
+
+tests {
+  test("records calls made to the MBTA V3 API", function () {
+    expect(res.status).to.equal(200);
+    const count = res.body.measurements.find((m) => m.statistic === "COUNT").value;
+    expect(count).to.be.at.least(1);
+  });
+}
+
+docs {
+  Recorded automatically by Spring Boot's instrumented RestClient (no code needed).
+  `availableTags` shows the URI templates (/routes/{id}) and upstream status codes: never raw ids.
+}

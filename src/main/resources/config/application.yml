@@ -4,8 +4,6 @@
 # This configuration will be overridden by the Spring profile you use,
 # for example application-dev.yml if you use the "dev" profile.
 #
-# More information on profiles: https://www.jhipster.tech/profiles/
-# More information on configuration properties: https://www.jhipster.tech/common-application-properties/
 # ===================================================================
 
 # ===================================================================
@@ -24,14 +22,6 @@ springdoc:
   api-docs:
     enabled: false
 ---
-feign:
-  circuitbreaker:
-    enabled: true
-  # client:
-  #   config:
-  #     default:
-  #       connectTimeout: 5000
-  #       readTimeout: 5000
 management:
   endpoints:
     web:
@@ -42,10 +32,9 @@ management:
           - env
           - health
           - info
-          - jhimetrics
-          - jhiopenapigroups
           - logfile
           - loggers
+          - metrics
           - prometheus
           - threaddump
           - caches
@@ -60,8 +49,6 @@ management:
           include: livenessState
         readiness:
           include: readinessState
-    jhimetrics:
-      access: read-only
   info:
     git:
       mode: full
@@ -75,7 +62,26 @@ management:
       export:
         enabled: true
         step: 60
+  # Prometheus (above) is always available: it is what the CloudWatch-export Lambda scrapes.
+  # Other exporters are on the classpath but OFF by default (their defaults are "enabled").
+  # Turn one on per environment with a Spring profile:
+  #   dynatrace -> application-dynatrace.yml  metrics to the local Dynatrace OneAgent (OneAgent also traces)
+  #   datadog   -> application-datadog.yml    metrics, pushed to the Datadog API
+  # Log shipping profiles (configured in logback-spring.xml):
+  #   splunk    -> Splunk HTTP Event Collector (SPLUNK_HEC_URL, SPLUNK_HEC_TOKEN)
+  #   fluentd   -> Fluentd / Doppler forward protocol (FLUENTD_HOST, FLUENTD_PORT)
+  #   json-logs -> JSON console logs (active in prod)
+  datadog:
+    metrics:
+      export:
+        enabled: false
+  dynatrace:
+    metrics:
+      export:
+        enabled: false
   observations:
+    annotations:
+      enabled: true # enables @Observed on beans (timers), see MbtaService, TransitService, RouteBoardService
     key-values:
       application: ${spring.application.name}
   metrics:
@@ -96,15 +102,27 @@ management:
           enabled: true
     tags:
       application: ${spring.application.name}
+      env: ${DEPLOY_ENV:local}
 
 spring:
   application:
     name: voicebioApi
-  docker:
-    compose:
-      enabled: true
-      lifecycle-management: start-only
-      file: src/main/docker/no.yml
+  http:
+    clients:
+      imperative:
+        factory: jdk # JDK HttpClient: supports PATCH (the "simple" HttpURLConnection factory does not)
+    serviceclient:
+      mbta: # HTTP interface group "mbta" (see MbtaV3Client): MBTA V3 REST API, JSON:API
+        base-url: https://api-v3.mbta.com
+        connect-timeout: 5s
+        read-timeout: 10s
+      transit: # HTTP interface group "transit" (see GtfsRealtimeClient): GTFS-Realtime feed, protobuf over HTTP
+        base-url: https://cdn.mbta.com
+        connect-timeout: 5s
+        read-timeout: 10s
+  threads:
+    virtual:
+      enabled: true # Java 21 virtual threads: blocking HTTP calls no longer pin a platform thread
   profiles:
     # The commented value for `active` can be replaced with valid Spring profiles to load.
     # Otherwise, it will be filled in by maven when building the JAR file
@@ -114,6 +132,8 @@ spring:
       dev:
         - secret-samples
         - api-docs
+      prod:
+        - json-logs # machine-readable console output (stdout is also read by OneAgent and the platform)
         # Uncomment to activate TLS for the dev profile
         #- tls
   jmx:
@@ -148,6 +168,8 @@ spring:
     ansi:
       console-available: true
 
+# Console logs are human-readable text by default; the "json-logs" profile (active in prod) switches them to JSON.
+
 server:
   servlet:
     session:
@@ -157,43 +179,14 @@ server:
 springdoc:
   show-actuator: true
 
-# Properties to be exposed on the /info management endpoint
-info:
-  # Comma separated list of profiles that will trigger the ribbon to show
-  display-ribbon-on-profiles: 'dev'
-
 # ===================================================================
-# JHipster specific properties
-#
-# Full reference is available at: https://www.jhipster.tech/common-application-properties/
+# Application specific properties (bound to the ApplicationProperties class)
 # ===================================================================
 
-jhipster:
-  mail:
-    from: voicebioApi@localhost
+application:
+  mbta:
+    api-key: ${MBTA_API_KEY:} # optional; without a key MBTA allows 20 requests/minute, with one 1000
   api-docs:
-    default-include-pattern: /api/**
-    management-include-pattern: /management/**
-    title: Voicebio Api API
-    description: Voicebio Api API documentation
+    title: Voicebio API
+    description: Voicebio API documentation
     version: 0.0.1
-    terms-of-service-url:
-    contact-name:
-    contact-url:
-    contact-email:
-    license: unlicensed
-    license-url:
-
-
-# jhipster-needle-add-application-yaml-document
----
-# ===================================================================
-# Application specific properties
-# Add your own application properties here, see the ApplicationProperties class
-# to have type-safe configuration, like in the JHipsterProperties above
-#
-# More documentation is available at:
-# https://www.jhipster.tech/common-application-properties/
-# ===================================================================
-
-# application:

@@ -1,17 +1,27 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE configuration>
 
-<configuration scan="true">
+<configuration>
     <!-- Patterns based on https://github.com/spring-projects/spring-boot/blob/v3.0.0/spring-boot-project/spring-boot/src/main/resources/org/springframework/boot/logging/logback/defaults.xml -->
-    <conversionRule conversionWord="crlf" converterClass="com.example.config.CRLFLogConverter" />
-    <property name="CONSOLE_LOG_PATTERN" value="${CONSOLE_LOG_PATTERN:-%clr(%d{${LOG_DATEFORMAT_PATTERN:-yyyy-MM-dd'T'HH:mm:ss.SSSXXX}}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) %clr(${PID:- }){magenta} %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %crlf(%m){red} %n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}}"/>
+    <conversionRule conversionWord="crlf" class="com.example.config.CRLFLogConverter" />
+    <property name="CONSOLE_LOG_PATTERN" value="${CONSOLE_LOG_PATTERN:-%clr(%d{${LOG_DATEFORMAT_PATTERN:-yyyy-MM-dd'T'HH:mm:ss.SSSXXX}}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) %clr(${PID:- }){magenta} %clr(---){faint} %clr([%15.15t]){faint}%clr(%replace( [%X{requestId}]){' \[\]', ''}){yellow} ${LOG_CORRELATION_PATTERN:-}%clr(%-40.40logger{39}){cyan} %clr(:){faint} %crlf(%m){red} %n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}}"/>
     <!-- The FILE and ASYNC appenders are here as examples for a production configuration -->
     <!--
     <property name="FILE_LOG_PATTERN" value="${FILE_LOG_PATTERN:-%d{${LOG_DATEFORMAT_PATTERN:-yyyy-MM-dd'T'HH:mm:ss.SSSXXX}} ${LOG_LEVEL_PATTERN:-%5p} ${PID:- } &#45;&#45;&#45; [%t] %-40.40logger{39} : %crlf(%m) %n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}}"/>
     -->
 
     <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
-    <include resource="org/springframework/boot/logging/logback/console-appender.xml" />
+    <!--
+        Console output: JSON (logging.structured.format.console) with the "json-logs" profile, text otherwise.
+        Boot's console-appender.xml always uses the text pattern, so the structured variant must be chosen here;
+        setting the property alone has no effect with a custom logback-spring.xml.
+    -->
+    <springProfile name="json-logs">
+        <include resource="org/springframework/boot/logging/logback/structured-console-appender.xml" />
+    </springProfile>
+    <springProfile name="!json-logs">
+        <include resource="org/springframework/boot/logging/logback/console-appender.xml" />
+    </springProfile>
 
     <!-- The FILE and ASYNC appenders are here as examples for a production configuration -->
     <!--
@@ -35,7 +45,6 @@
     <logger name="jakarta.management.remote" level="WARN"/>
     <logger name="jakarta.xml.bind" level="WARN"/>
     <logger name="jdk.event.security" level="INFO"/>
-    <logger name="io.github.resilience4j" level="INFO"/>
     <logger name="com.netflix" level="WARN"/>
     <logger name="com.netflix.config.sources.URLConfigurationSource" level="ERROR"/>
     <logger name="com.netflix.discovery" level="INFO"/>
@@ -58,18 +67,93 @@
     <logger name="sun.rmi" level="WARN"/>
     <logger name="sun.net.www" level="INFO"/>
     <logger name="sun.rmi.transport" level="WARN"/>
-    <!-- See https://github.com/jhipster/generator-jhipster/issues/13835 -->
     <logger name="Validator" level="INFO"/>
-    <!-- See https://github.com/jhipster/generator-jhipster/issues/14444 -->
     <logger name="_org.springframework.web.servlet.HandlerMapping.Mappings" level="INFO"/>
     <logger name="org.springframework.boot.docker" level="WARN"/>
     <logger name="java.lang.ProcessBuilder" level="INFO"/>
-    <!-- jhipster-needle-logback-add-log - JHipster will add a new log with level -->
 
     <springProperty name="log.level" source="logging.level.root" defaultValue="INFO" />
+    <springProperty name="appName" source="spring.application.name" defaultValue="voicebioApi" />
     <root level="${log.level}">
         <appender-ref ref="CONSOLE" />
     </root>
+
+    <!--
+        Profile "splunk": Splunk HTTP Event Collector.
+        Required: SPLUNK_HEC_URL (e.g. https://splunk.example.com:8088), SPLUNK_HEC_TOKEN.
+        Optional: SPLUNK_INDEX, SPLUNK_SOURCETYPE.
+        MDC values (requestId...) are sent as indexed fields. The Splunk appender batches and sends on its own
+        threads; the AsyncAppender with neverBlock guarantees a slow or unreachable Splunk never blocks a request
+        (events are dropped instead, which is the right trade-off for logs).
+    -->
+    <springProfile name="splunk">
+        <springProperty name="splunkUrl" source="SPLUNK_HEC_URL" />
+        <springProperty name="splunkToken" source="SPLUNK_HEC_TOKEN" />
+        <springProperty name="splunkIndex" source="SPLUNK_INDEX" defaultValue="main" />
+        <springProperty name="splunkSourcetype" source="SPLUNK_SOURCETYPE" defaultValue="voicebio:app" />
+        <appender name="SPLUNK" class="com.splunk.logging.HttpEventCollectorLogbackAppender">
+            <url>${splunkUrl}</url>
+            <token>${splunkToken}</token>
+            <index>${splunkIndex}</index>
+            <source>${appName}</source>
+            <sourcetype>${splunkSourcetype}</sourcetype>
+            <host>${HOSTNAME}</host>
+            <messageFormat>text</messageFormat>
+            <includeMDC>true</includeMDC>
+            <includeLoggerName>true</includeLoggerName>
+            <includeThreadName>true</includeThreadName>
+            <includeException>true</includeException>
+            <batch_size_count>100</batch_size_count>
+            <batch_interval>2000</batch_interval>
+            <retries_on_error>3</retries_on_error>
+            <send_mode>sequential</send_mode>
+            <connectTimeout>5000</connectTimeout>
+            <readTimeout>10000</readTimeout>
+            <layout class="ch.qos.logback.classic.PatternLayout">
+                <pattern>%msg</pattern>
+            </layout>
+        </appender>
+        <appender name="ASYNC_SPLUNK" class="ch.qos.logback.classic.AsyncAppender">
+            <queueSize>8192</queueSize>
+            <discardingThreshold>0</discardingThreshold>
+            <neverBlock>true</neverBlock>
+            <appender-ref ref="SPLUNK" />
+        </appender>
+        <root>
+            <appender-ref ref="ASYNC_SPLUNK" />
+        </root>
+    </springProfile>
+
+    <!--
+        Profile "fluentd": Fluentd forward protocol (Doppler), through Fluency.
+        Required: FLUENTD_HOST. Optional: FLUENTD_PORT (24224), FLUENTD_TAG (voicebio-api).
+        Fluency buffers in memory and sends on its own thread with retries (bounded buffer, so a down
+        Fluentd cannot exhaust the heap), and flushes the buffer on shutdown. MDC values become record fields.
+    -->
+    <springProfile name="fluentd">
+        <springProperty name="fluentdHost" source="FLUENTD_HOST" />
+        <springProperty name="fluentdPort" source="FLUENTD_PORT" defaultValue="24224" />
+        <springProperty name="fluentdTag" source="FLUENTD_TAG" defaultValue="voicebio-api" />
+        <appender name="FLUENTD" class="ch.qos.logback.more.appenders.FluencyLogbackAppender">
+            <tag>${fluentdTag}</tag>
+            <remoteHost>${fluentdHost}</remoteHost>
+            <port>${fluentdPort}</port>
+            <useEventTime>true</useEventTime>
+            <maxBufferSize>67108864</maxBufferSize>
+            <flushAttemptIntervalMillis>1000</flushAttemptIntervalMillis>
+            <senderMaxRetryCount>8</senderMaxRetryCount>
+            <connectionTimeoutMilli>5000</connectionTimeoutMilli>
+            <readTimeoutMilli>5000</readTimeoutMilli>
+            <waitUntilBufferFlushed>5</waitUntilBufferFlushed>
+            <waitUntilFlusherTerminated>5</waitUntilFlusherTerminated>
+            <encoder>
+                <pattern>%msg</pattern>
+            </encoder>
+        </appender>
+        <root>
+            <appender-ref ref="FLUENTD" />
+        </root>
+    </springProfile>
 
     <!-- Prevent logback from outputting its own status -->
     <statusListener class="ch.qos.logback.core.status.NopStatusListener"/>

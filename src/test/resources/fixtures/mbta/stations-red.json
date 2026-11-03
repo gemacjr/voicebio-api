@@ -1,0 +1,24 @@
+{
+  "data": [
+    {
+      "id": "place-jfk",
+      "type": "stop",
+      "attributes": { "name": "JFK/UMass", "platform_name": null, "location_type": 1, "latitude": 42.320685, "longitude": -71.052391 },
+      "relationships": { "child_stops": { "data": [ { "id": "70085", "type": "stop" }, { "id": "70089", "type": "stop" }, { "id": "door-jfk-1", "type": "stop" } ] } }
+    },
+    {
+      "id": "place-pktrm",
+      "type": "stop",
+      "attributes": { "name": "Park Street", "platform_name": null, "location_type": 1, "latitude": 42.356395, "longitude": -71.062424 },
+      "relationships": { "child_stops": { "data": [ { "id": "70075", "type": "stop" }, { "id": "70076", "type": "stop" } ] } }
+    }
+  ],
+  "included": [
+    { "id": "70085", "type": "stop", "attributes": { "name": "JFK/UMass", "platform_name": "Ashmont/Braintree", "location_type": 0, "latitude": 42.32, "longitude": -71.052 }, "relationships": { "parent_station": { "data": { "id": "place-jfk", "type": "stop" } } } },
+    { "id": "70089", "type": "stop", "attributes": { "name": "JFK/UMass", "platform_name": "Alewife", "location_type": 0, "latitude": 42.321, "longitude": -71.052 }, "relationships": { "parent_station": { "data": { "id": "place-jfk", "type": "stop" } } } },
+    { "id": "door-jfk-1", "type": "stop", "attributes": { "name": "JFK/UMass - Columbia Rd", "platform_name": null, "location_type": 2, "latitude": 42.3207, "longitude": -71.0525 }, "relationships": { "parent_station": { "data": { "id": "place-jfk", "type": "stop" } } } },
+    { "id": "70075", "type": "stop", "attributes": { "name": "Park Street", "platform_name": "Ashmont/Braintree", "location_type": 0, "latitude": 42.3564, "longitude": -71.0624 }, "relationships": { "parent_station": { "data": { "id": "place-pktrm", "type": "stop" } } } },
+    { "id": "70076", "type": "stop", "attributes": { "name": "Park Street", "platform_name": "Alewife", "location_type": 0, "latitude": 42.3564, "longitude": -71.0624 }, "relationships": { "parent_station": { "data": { "id": "place-pktrm", "type": "stop" } } } }
+  ],
+  "jsonapi": { "version": "1.0" }
+}

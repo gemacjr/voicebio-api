@@ -1,0 +1,19 @@
+# ===================================================================
+# Profile "json-logs": one JSON object per console line (Logstash format).
+#
+# Machine-readable stdout for whatever reads the container output (the platform, Dynatrace OneAgent).
+# Splunk and Fluentd/Doppler receive events directly through their own appenders
+# (profiles "splunk" and "fluentd", see logback-spring.xml); this profile only changes the console.
+#
+# MDC values become top-level fields: requestId, traceId, spanId.
+# Active in prod through the profile group in application.yml.
+# ===================================================================
+logging:
+  structured:
+    format:
+      console: logstash
+    json:
+      add: # constant fields for filtering in the log platform (Datadog unified service tagging uses the same names)
+        service: ${spring.application.name}
+        env: ${DEPLOY_ENV:local}
+        version: '@project.version@'

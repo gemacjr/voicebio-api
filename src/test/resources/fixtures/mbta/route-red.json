@@ -1,0 +1,9 @@
+{
+  "data": {
+    "id": "Red",
+    "type": "route",
+    "attributes": { "long_name": "Red Line", "short_name": "", "color": "DA291C", "text_color": "FFFFFF", "type": 1, "description": "Rapid Transit", "direction_names": ["South", "North"], "direction_destinations": ["Ashmont/Braintree", "Alewife"] },
+    "relationships": { "line": { "data": { "id": "line-Red", "type": "line" } } }
+  },
+  "jsonapi": { "version": "1.0" }
+}

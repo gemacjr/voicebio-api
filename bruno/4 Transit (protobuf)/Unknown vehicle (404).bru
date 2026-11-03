@@ -1,0 +1,23 @@
+meta {
+  name: Unknown vehicle (404)
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/transit/vehicles/no-such-vehicle
+  body: none
+  auth: inherit
+}
+
+headers {
+  Accept: application/x-protobuf
+}
+
+tests {
+  test("errors stay readable problem+json even when protobuf was requested", function () {
+    expect(res.status).to.equal(404);
+    expect(res.headers["content-type"]).to.contain("application/problem+json");
+    expect(res.body.title).to.equal("Vehicle not found");
+  });
+}

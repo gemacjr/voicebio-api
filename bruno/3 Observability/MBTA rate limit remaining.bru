@@ -1,0 +1,25 @@
+meta {
+  name: MBTA rate limit remaining
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/management/metrics/mbta.ratelimit.remaining
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("gauge read from MBTA's x-ratelimit-remaining header", function () {
+    expect(res.status).to.equal(200);
+    const value = res.body.measurements[0].value;
+    console.log("MBTA requests left in this window: " + value + " (-1 = no call yet)");
+    expect(value).to.be.a("number");
+  });
+}
+
+docs {
+  Without MBTA_API_KEY, MBTA allows 20 requests per minute. Caching keeps us far below that;
+  this gauge shows how close we are. Alert on it before users see 503 "MBTA API rate limited".
+}

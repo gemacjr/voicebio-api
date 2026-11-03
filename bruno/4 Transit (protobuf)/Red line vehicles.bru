@@ -1,0 +1,27 @@
+meta {
+  name: Red line vehicles
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/transit/vehicles?routeId=Red
+  body: none
+  auth: inherit
+}
+
+params:query {
+  routeId: Red
+}
+
+headers {
+  Accept: application/json
+}
+
+tests {
+  test("only Red line vehicles", function () {
+    expect(res.status).to.equal(200);
+    res.body.vehicles.forEach((v) => expect(v.routeId).to.equal("Red"));
+    console.log("Red line vehicles now: " + res.body.vehicles.length + " of " + res.body.totalInFeed + " in the feed");
+  });
+}

@@ -2,6 +2,8 @@ package com.example.web.rest.errors;
 
 import static org.springframework.core.annotation.AnnotatedElementUtils.findMergedAnnotation;
 
+import com.example.RetryableFailure;
+import com.example.SpringProfiles;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import java.net.URI;
@@ -9,11 +11,10 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
 import org.jspecify.annotations.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpHeaders;
@@ -26,22 +27,20 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.ErrorResponse;
 import org.springframework.web.ErrorResponseException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
-import tech.jhipster.config.JHipsterConstants;
-import tech.jhipster.web.rest.errors.ProblemDetailWithCause;
-import tech.jhipster.web.rest.errors.ProblemDetailWithCause.ProblemDetailWithCauseBuilder;
-import tech.jhipster.web.util.HeaderUtil;
 
 /**
  * Controller advice to translate the server side exceptions to client-friendly json structures.
  * The error response follows RFC7807 - Problem Details for HTTP APIs (https://tools.ietf.org/html/rfc7807).
  */
 @ControllerAdvice
+@Slf4j
 public class ExceptionTranslator extends ResponseEntityExceptionHandler {
 
     private static final String FIELD_ERRORS_KEY = "fieldErrors";
@@ -49,9 +48,7 @@ public class ExceptionTranslator extends ResponseEntityExceptionHandler {
     private static final String PATH_KEY = "path";
     private static final boolean CAUSAL_CHAIN_ENABLED = false;
 
-    private static final Logger LOG = LoggerFactory.getLogger(ExceptionTranslator.class);
-
-    @Value("${jhipster.clientApp.name:voicebioApi}")
+    @Value("${spring.application.name:voicebioApi}")
     private String applicationName;
 
     private final Environment env;
@@ -62,9 +59,9 @@ public class ExceptionTranslator extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler
     public ResponseEntity<Object> handleAnyException(Throwable ex, NativeWebRequest request) {
-        LOG.debug("Converting Exception to Problem Details:", ex);
+        log.debug("Converting Exception to Problem Details:", ex);
         ProblemDetailWithCause pdCause = wrapAndCustomizeProblem(ex, request);
-        return handleExceptionInternal((Exception) ex, pdCause, buildHeaders(ex), HttpStatusCode.valueOf(pdCause.getStatus()), request);
+        return handleExceptionInternal((Exception) ex, pdCause, new HttpHeaders(), HttpStatusCode.valueOf(pdCause.getStatus()), request);
     }
 
     @SuppressWarnings("java:S2638")
@@ -78,6 +75,15 @@ public class ExceptionTranslator extends ResponseEntityExceptionHandler {
         WebRequest request
     ) {
         body = body == null ? wrapAndCustomizeProblem(ex, (NativeWebRequest) request) : body;
+        // Added here rather than in handleAnyException: Spring routes ErrorResponseException subclasses
+        // (such as BadRequestAlertException) to its own more specific handler, which only passes through here.
+        HttpHeaders alertHeaders = buildHeaders(ex);
+        if (alertHeaders != null) {
+            HttpHeaders merged = new HttpHeaders();
+            merged.addAll(headers);
+            merged.addAll(alertHeaders);
+            headers = merged;
+        }
         return super.handleExceptionInternal(ex, body, headers, statusCode, request);
     }
 
@@ -89,7 +95,7 @@ public class ExceptionTranslator extends ResponseEntityExceptionHandler {
         if (
             ex instanceof ErrorResponseException exp && exp.getBody() instanceof ProblemDetailWithCause problemDetailWithCause
         ) return problemDetailWithCause;
-        return ProblemDetailWithCauseBuilder.instance().withStatus(toStatus(ex).value()).build();
+        return ProblemDetailWithCause.Builder.instance().withStatus(toStatus(ex).value()).build();
     }
 
     protected ProblemDetailWithCause customizeProblem(ProblemDetailWithCause problem, Throwable err, NativeWebRequest request) {
@@ -122,6 +128,14 @@ public class ExceptionTranslator extends ResponseEntityExceptionHandler {
             (problemProperties == null || !problemProperties.containsKey(FIELD_ERRORS_KEY))
         ) problem.setProperty(FIELD_ERRORS_KEY, getFieldErrors(fieldException));
 
+        if (
+            err instanceof HandlerMethodValidationException parameterException &&
+            (problemProperties == null || !problemProperties.containsKey(FIELD_ERRORS_KEY))
+        ) {
+            problem.setProperty(FIELD_ERRORS_KEY, getParameterErrors(parameterException));
+            problem.setDetail("Invalid request parameters");
+        }
+
         problem.setCause(buildCause(err.getCause(), request).orElse(null));
 
         return problem;
@@ -144,6 +158,35 @@ public class ExceptionTranslator extends ResponseEntityExceptionHandler {
                 )
             )
             .toList();
+    }
+
+    /** Errors on @RequestParam / @PathVariable constraints (e.g. {@code @Min(1) int limit}), same shape as body field errors. */
+    private List<FieldErrorVM> getParameterErrors(HandlerMethodValidationException ex) {
+        return ex
+            .getParameterValidationResults()
+            .stream()
+            .flatMap(result ->
+                result
+                    .getResolvableErrors()
+                    .stream()
+                    .map(error ->
+                        new FieldErrorVM(
+                            "request",
+                            result.getMethodParameter().getParameterName(),
+                            StringUtils.isNotBlank(error.getDefaultMessage()) ? error.getDefaultMessage() : "invalid"
+                        )
+                    )
+            )
+            .toList();
+    }
+
+    /** Request validation failures, whether on a request body, a parameter, or a method constraint. */
+    private static boolean isValidationError(Throwable err) {
+        return (
+            err instanceof MethodArgumentNotValidException ||
+            err instanceof ConstraintViolationException ||
+            err instanceof HandlerMethodValidationException
+        );
     }
 
     private String extractTitleForResponseStatus(Throwable err, int statusCode) {
@@ -175,29 +218,25 @@ public class ExceptionTranslator extends ResponseEntityExceptionHandler {
     }
 
     private URI getMappedType(Throwable err) {
-        if (
-            err instanceof MethodArgumentNotValidException || err instanceof ConstraintViolationException
-        ) return ErrorConstants.CONSTRAINT_VIOLATION_TYPE;
+        if (isValidationError(err)) return ErrorConstants.CONSTRAINT_VIOLATION_TYPE;
         return ErrorConstants.DEFAULT_TYPE;
     }
 
     private String getMappedMessageKey(Throwable err) {
-        if (err instanceof MethodArgumentNotValidException || err instanceof ConstraintViolationException) {
+        if (isValidationError(err)) {
             return ErrorConstants.ERR_VALIDATION;
         }
         return null;
     }
 
     private String getCustomizedTitle(Throwable err) {
-        if (
-            err instanceof MethodArgumentNotValidException || err instanceof ConstraintViolationException
-        ) return "Method argument not valid";
+        if (isValidationError(err)) return "Method argument not valid";
         return null;
     }
 
     private String getCustomizedErrorDetails(Throwable err) {
         Collection<String> activeProfiles = List.of(env.getActiveProfiles());
-        if (activeProfiles.contains(JHipsterConstants.SPRING_PROFILE_PRODUCTION)) {
+        if (activeProfiles.contains(SpringProfiles.PRODUCTION)) {
             if (err instanceof HttpMessageConversionException) return "Unable to convert http message";
             if (containsPackageName(err.getMessage())) return "Unexpected runtime exception";
         }
@@ -218,15 +257,23 @@ public class ExceptionTranslator extends ResponseEntityExceptionHandler {
     }
 
     private HttpHeaders buildHeaders(Throwable err) {
-        return err instanceof BadRequestAlertException badRequestAlertException
-            ? HeaderUtil.createFailureAlert(
-                  applicationName,
-                  true,
-                  badRequestAlertException.getEntityName(),
-                  badRequestAlertException.getErrorKey(),
-                  badRequestAlertException.getMessage()
-              )
-            : null;
+        if (err instanceof BadRequestAlertException badRequestAlertException) {
+            return createFailureAlertHeaders(badRequestAlertException.getEntityName(), badRequestAlertException.getErrorKey());
+        }
+        if (err instanceof RetryableFailure retryable) {
+            HttpHeaders headers = new HttpHeaders();
+            headers.set(HttpHeaders.RETRY_AFTER, String.valueOf(retryable.retryAfterSeconds()));
+            return headers;
+        }
+        return null;
+    }
+
+    private HttpHeaders createFailureAlertHeaders(String entityName, String errorKey) {
+        log.error("Entity processing failed, {}", errorKey);
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("X-" + applicationName + "-error", "error." + errorKey);
+        headers.add("X-" + applicationName + "-params", entityName);
+        return headers;
     }
 
     public Optional<ProblemDetailWithCause> buildCause(final Throwable throwable, NativeWebRequest request) {

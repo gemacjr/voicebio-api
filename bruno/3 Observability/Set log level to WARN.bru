@@ -1,0 +1,27 @@
+meta {
+  name: Set log level to WARN
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{baseUrl}}/management/loggers/com.example.service
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "configuredLevel": "WARN"
+  }
+}
+
+tests {
+  test("level changed at runtime without restart", function () {
+    expect(res.status).to.equal(204);
+  });
+}
+
+docs {
+  After this, call "5 Route board / Red Line live" again: the INFO lines from the services disappear from the console.
+}
