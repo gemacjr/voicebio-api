@@ -21,7 +21,7 @@ A 25-minute walkthrough that shows every concern in this guide working against l
 
 | Need | Check |
 |---|---|
-| JDK **21** | `java -version`, or `export JAVA_HOME=$(/usr/libexec/java_home -v 21)` |
+| JDK **21** | `java -version`, or `export JAVA_HOME=$(/usr/libexec/java_home -F -v 21)` |
 | [Bruno](https://www.usebruno.com) desktop app (or CLI `bru`) | installed |
 | Internet access | the app calls `api-v3.mbta.com` and `cdn.mbta.com` |
 | Docker (optional) | for the Fluentd step |
@@ -166,6 +166,6 @@ anyone with the secret can mint admin tokens. See [Security](security.md#symmetr
 | 503 `MBTA API rate limited` + `Retry-After` | Over 20 MBTA calls/minute (cold caches, many restarts) | Wait `Retry-After` seconds, or set `MBTA_API_KEY` |
 | 502 on MBTA endpoints | No internet, or MBTA down | `curl https://api-v3.mbta.com/routes/Red` |
 | Route board `gtfsRealtime: UNAVAILABLE` | GTFS feed unreachable or slower than 4 s | Check `curl -I https://cdn.mbta.com/realtime/VehiclePositions.pb` |
-| Enforcer error "builds and runs on JDK 21" | Wrong JDK | `export JAVA_HOME=$(/usr/libexec/java_home -v 21)` |
+| Enforcer error "builds and runs on JDK 21" | Wrong JDK | `export JAVA_HOME=$(/usr/libexec/java_home -F -v 21)` |
 | Startup fails "profile 'fluentd' requires FLUENTD_HOST" | Profile on, setting missing | Set the variable, or drop the profile |
 | ERROR stack trace on a 404 in the console | `LoggingAspect` logs every exception in dev | Expected in dev |

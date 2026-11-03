@@ -29,7 +29,29 @@ This project builds and runs on JDK 21 (LTS). Set JAVA_HOME to a JDK 21.
 ```
 
 ```bash
-export JAVA_HOME=$(/usr/libexec/java_home -v 21)     # macOS
+export JAVA_HOME=$(/usr/libexec/java_home -F -v 21)     # macOS
+```
+
+{: .warning }
+Use `-F` (fail fast). Without it, `java_home -v 21` silently returns **another** JDK (for example 25) when no JDK 21 is
+registered with macOS, and the build then fails the enforcer check with a confusing message. A Homebrew JDK is not
+registered automatically; register it once, without sudo:
+
+```bash
+ln -sfn /opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk ~/Library/Java/JavaVirtualMachines/openjdk-21.jdk
+/usr/libexec/java_home -F -v 21      # now prints the JDK 21 path
+```
+
+To make 21 the default for every new terminal, add the `export JAVA_HOME=...` line to `~/.zshrc`.
+
+{: .note }
+**IDE and Maven share `target/classes`.** VS Code's Java extension (and Eclipse) compile into the same folder with the
+Eclipse compiler. Running `./mvnw` while the IDE is rebuilding can mix class files and produce errors such as
+`NoClassDefFoundError: ...$1` in tests. Let the IDE finish, or set `"java.autobuild.enabled": false` in VS Code.
+
+With SDKMAN instead:
+
+```bash
 sdk env                                               # SDKMAN reads .sdkmanrc (java=21)
 ```
 
@@ -133,16 +155,35 @@ generated code from coverage, and `config.stopBubbling = true`, so settings from
 |---|---|---|
 | `maven-enforcer-plugin` | validate | Maven and JDK versions; reports dependency convergence |
 | `maven-checkstyle-plugin` + `nohttp` | verify | No plain `http://` URLs in `pom.xml` and `README.md` (`checkstyle.xml`) |
-| `spotless-maven-plugin` | process-sources | Formatting hook (no formatter configured yet; see below) |
+| `spotless-maven-plugin` | validate | **Fails the build** if Java code is not formatted (google-java-format); see below |
 | `maven-surefire-plugin` | test | Unit tests (`*Test`) |
 | `maven-failsafe-plugin` | integration-test, verify | Integration tests (`*IT`), run against the packaged classes |
 | `jacoco-maven-plugin` | test, post-integration-test | Coverage reports for unit and integration tests |
 | `modernizer-maven-plugin` | package | Flags legacy APIs that have modern JDK replacements |
 | `sonar-maven-plugin` | on demand | Static analysis (settings in `sonar-project.properties`) |
 
-{: .note }
-Java formatting used to be done by Prettier through the removed Node tooling. To enforce formatting again, add a
-formatter to Spotless, for example `<java><palantirJavaFormat/></java>`, and run `./mvnw spotless:apply` once.
+### Code formatting: Spotless + google-java-format
+
+All Java in `src/main/java` and `src/test/java` follows **[google-java-format](https://github.com/google/google-java-format)**
+(Google style: 2-space indentation, 100 columns), plus removal of unused imports, trailing whitespace and a final newline.
+
+```bash
+./mvnw spotless:apply     # format everything (run before committing)
+./mvnw spotless:check     # what the build runs
+```
+
+The build runs `spotless:check` in the **validate** phase, so unformatted code fails `./mvnw verify` immediately, before
+compiling, naming the offending files. The build never rewrites sources itself: a formatter that silently changes files
+during CI hides problems instead of reporting them. Generated sources (protoc output in `target/`) are excluded.
+
+{: .lesson }
+`google-java-format` **1.37.0** fails inside Spotless 3.10.x with a bare `InvocationTargetException` (the formatter
+itself runs fine on its own; the plugin's integration does not support that release yet). The pom pins **1.36.1**,
+with a comment saying why. Check before upgrading either one.
+
+{: .tip }
+IDE: install the google-java-format plugin (IntelliJ) or the "Language Support for Java" formatter with the Google style
+(VS Code) so the editor formats the same way; `spotless:apply` remains the reference.
 
 ## Container images with Jib
 

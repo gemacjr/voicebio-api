@@ -40,7 +40,7 @@ MBTA) to raise the limit to 1,000.
 The build requires **JDK 21** (the enforcer rejects other versions):
 
 ```bash
-export JAVA_HOME=$(/usr/libexec/java_home -v 21)   # or: sdk env   (reads .sdkmanrc)
+export JAVA_HOME=$(/usr/libexec/java_home -F -v 21)   # or: sdk env   (reads .sdkmanrc)
 ./mvnw                                               # dev profile on http://localhost:8081
 ```
 
@@ -73,6 +73,14 @@ A profile without its required settings stops startup with a clear message. Set 
 
 `splunk-library-javalogging` comes from Splunk's Maven repository (declared in the pom); add it to your corporate
 Maven proxy if you use one.
+
+## Code formatting
+
+Java code follows google-java-format, enforced by Spotless: the build fails on unformatted code.
+
+```bash
+./mvnw spotless:apply     # format before committing
+```
 
 ## Testing
 

@@ -1,0 +1,4 @@
+# Formatting-only commits, skipped by GitHub blame and by
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+# Reformat Java sources with google-java-format
+fd3d3a048091664d36a9e95a4e6b86a2734fcb6b

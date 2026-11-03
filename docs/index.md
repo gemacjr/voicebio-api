@@ -90,7 +90,7 @@ flowchart LR
 ## Quick start
 
 ```bash
-export JAVA_HOME=$(/usr/libexec/java_home -v 21)   # the build requires JDK 21
+export JAVA_HOME=$(/usr/libexec/java_home -F -v 21)   # the build requires JDK 21
 ./mvnw                      # run with the dev profile on http://localhost:8081
 ./mvnw verify               # unit + integration tests
 ```

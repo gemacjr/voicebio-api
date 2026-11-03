@@ -32,7 +32,8 @@ public class TransitClientConfiguration {
   /** Applies the transit-feed specific behaviour to a client builder (also used by tests). */
   static RestClient.Builder customize(RestClient.Builder builder) {
     return builder
-        .messageConverters(converters -> converters.addFirst(new ProtobufHttpMessageConverter()))
+        .configureMessageConverters(
+            converters -> converters.addCustomConverter(new ProtobufHttpMessageConverter()))
         .requestInterceptor(OutboundCallLogging.timingLog("Transit feed"))
         .defaultStatusHandler(
             HttpStatusCode::isError,
