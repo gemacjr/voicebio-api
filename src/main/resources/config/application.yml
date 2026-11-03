@@ -54,9 +54,6 @@ management:
       mode: full
     env:
       enabled: true
-  health:
-    mail:
-      enabled: false # When using the MailService, configure an SMTP server and set this to true
   prometheus:
     metrics:
       export:
@@ -138,8 +135,6 @@ spring:
         #- tls
   jmx:
     enabled: false
-  messages:
-    basename: i18n/messages
   main:
     allow-bean-definition-overriding: true
   mvc:
@@ -162,8 +157,6 @@ spring:
       thread-name-prefix: voicebio-api-scheduling-
       pool:
         size: 2
-  thymeleaf:
-    mode: HTML
   output:
     ansi:
       console-available: true

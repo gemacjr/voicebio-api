@@ -12,7 +12,6 @@
     <logger name="com.github.dockerjava" level="WARN"/>
 
     <logger name="jakarta.activation" level="WARN"/>
-    <logger name="jakarta.mail" level="WARN"/>
     <logger name="jakarta.xml.bind" level="WARN"/>
     <logger name="ch.qos.logback" level="WARN"/>
     <logger name="com.netflix" level="WARN"/>
@@ -31,7 +30,6 @@
     <logger name="org.springframework.web" level="WARN"/>
     <logger name="org.springframework.security" level="WARN"/>
     <logger name="org.springframework.cache" level="WARN"/>
-    <logger name="org.thymeleaf" level="WARN"/>
     <logger name="org.xnio" level="WARN"/>
     <logger name="io.swagger.v3" level="INFO"/>
     <logger name="sun.rmi" level="WARN"/>

@@ -146,7 +146,7 @@ client model and the mapper change, and callers of `/api/mbta/*` never notice. O
 from MBTA's: GTFS `route_type` 1 becomes `"kind": "SUBWAY"`, and JSON:API relationships become plain ids.
 
 {: .note }
-For many fields, use [MapStruct](https://mapstruct.org) (already on the build path) instead of hand-written mappers.
+For many fields, consider [MapStruct](https://mapstruct.org) (add it with its annotation processor) instead of hand-written mappers.
 For a handful of fields, a static method is clearer.
 
 ## Key design decisions

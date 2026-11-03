@@ -58,21 +58,20 @@ the right JDK automatically.
 | `prod` | Spring profile `prod`; adds `git-commit-id` (git info in `/management/info`), cleans `target/classes/static` |
 | `api-docs` | Adds the `api-docs` Spring profile to a prod build |
 | `tls` | Adds the `tls` Spring profile (HTTPS) |
-| `IDE` | Puts the MapStruct processor on the IDE classpath |
 
 ## Annotation processors and Lombok
 
-Three annotation processors run at compile time, **in this order**:
+Two annotation processors run at compile time, **in this order**:
 
 ```xml
 <annotationProcessorPaths>
     <path><groupId>org.projectlombok</groupId><artifactId>lombok</artifactId></path>
     <path><groupId>org.springframework.boot</groupId><artifactId>spring-boot-configuration-processor</artifactId></path>
-    <path><groupId>org.mapstruct</groupId><artifactId>mapstruct-processor</artifactId>...</path>
 </annotationProcessorPaths>
 ```
 
-Lombok goes first so the other processors see the code it generates. `spring-boot-configuration-processor` generates
+Lombok goes first so later processors see the code it generates (if you add MapStruct, put its processor after Lombok,
+with `lombok-mapstruct-binding`). `spring-boot-configuration-processor` generates
 metadata for `ApplicationProperties`, which drives IDE auto-completion in YAML.
 
 ### Dependencies from Splunk's repository

@@ -28,8 +28,6 @@ spring:
       enabled: false
     livereload:
       enabled: false
-  thymeleaf:
-    cache: true
 
 # ===================================================================
 # To enable TLS in production, generate a certificate using:
