@@ -1,4 +1,2 @@
-/**
- * Application configuration.
- */
+/** Application configuration. */
 package com.example.config;

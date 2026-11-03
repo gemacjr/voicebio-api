@@ -8,10 +8,9 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 @ResponseStatus(value = HttpStatus.BAD_GATEWAY, reason = "Route board unavailable")
 public class RouteBoardUnavailableException extends RuntimeException {
 
-    @Serial
-    private static final long serialVersionUID = 1L;
+  @Serial private static final long serialVersionUID = 1L;
 
-    public RouteBoardUnavailableException(String routeId) {
-        super("No upstream source answered for route " + routeId);
-    }
+  public RouteBoardUnavailableException(String routeId) {
+    super("No upstream source answered for route " + routeId);
+  }
 }

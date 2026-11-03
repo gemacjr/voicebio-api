@@ -8,10 +8,9 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 @ResponseStatus(value = HttpStatus.BAD_GATEWAY, reason = "MBTA API error")
 public class MbtaApiException extends RuntimeException {
 
-    @Serial
-    private static final long serialVersionUID = 1L;
+  @Serial private static final long serialVersionUID = 1L;
 
-    public MbtaApiException(String message) {
-        super(message);
-    }
+  public MbtaApiException(String message) {
+    super(message);
+  }
 }

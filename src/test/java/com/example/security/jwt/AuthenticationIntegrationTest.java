@@ -16,12 +16,11 @@ import org.springframework.boot.test.context.SpringBootTest;
 @Retention(RetentionPolicy.RUNTIME)
 @SpringBootTest(
     classes = {
-        WebConfigurer.class,
-        SecurityConfiguration.class,
-        SecurityJwtConfiguration.class,
-        SecurityMetersService.class,
-        JwtAuthenticationTestUtils.class,
-    }
-)
+      WebConfigurer.class,
+      SecurityConfiguration.class,
+      SecurityJwtConfiguration.class,
+      SecurityMetersService.class,
+      JwtAuthenticationTestUtils.class,
+    })
 @EnableConfigurationProperties(ApplicationProperties.class)
 public @interface AuthenticationIntegrationTest {}

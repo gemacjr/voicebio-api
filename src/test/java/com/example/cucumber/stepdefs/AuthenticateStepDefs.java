@@ -10,16 +10,15 @@ import org.springframework.test.web.servlet.MockMvc;
 
 public class AuthenticateStepDefs extends StepDefs {
 
-    @Autowired
-    private MockMvc mockMvc;
+  @Autowired private MockMvc mockMvc;
 
-    @When("I get authenticate")
-    public void i_get_authenticate() throws Throwable {
-        actions = mockMvc.perform(get("/api/authenticate"));
-    }
+  @When("I get authenticate")
+  public void i_get_authenticate() throws Throwable {
+    actions = mockMvc.perform(get("/api/authenticate"));
+  }
 
-    @Then("authenticate returns response with status No Content")
-    public void authenticate_returns_response_with_status_no_content() throws Throwable {
-        actions.andExpect(status().isNoContent());
-    }
+  @Then("authenticate returns response with status No Content")
+  public void authenticate_returns_response_with_status_no_content() throws Throwable {
+    actions.andExpect(status().isNoContent());
+  }
 }

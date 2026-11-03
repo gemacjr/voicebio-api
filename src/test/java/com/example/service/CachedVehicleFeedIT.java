@@ -17,27 +17,24 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 @IntegrationTest
 class CachedVehicleFeedIT {
 
-    @Autowired
-    private CachedVehicleFeed feed;
+  @Autowired private CachedVehicleFeed feed;
 
-    @Autowired
-    private CacheManager cacheManager;
+  @Autowired private CacheManager cacheManager;
 
-    @MockitoBean
-    private GtfsRealtimeClient client;
+  @MockitoBean private GtfsRealtimeClient client;
 
-    @BeforeEach
-    void clearCache() {
-        cacheManager.getCache(CachedVehicleFeed.CACHE).clear();
-        when(client.vehiclePositions()).thenReturn(GtfsFixtures.vehiclePositions());
-    }
+  @BeforeEach
+  void clearCache() {
+    cacheManager.getCache(CachedVehicleFeed.CACHE).clear();
+    when(client.vehiclePositions()).thenReturn(GtfsFixtures.vehiclePositions());
+  }
 
-    @Test
-    void repeatedReadsHitTheUpstreamOnce() {
-        feed.vehiclePositions();
-        feed.vehiclePositions();
-        feed.vehiclePositions();
+  @Test
+  void repeatedReadsHitTheUpstreamOnce() {
+    feed.vehiclePositions();
+    feed.vehiclePositions();
+    feed.vehiclePositions();
 
-        verify(client, times(1)).vehiclePositions();
-    }
+    verify(client, times(1)).vehiclePositions();
+  }
 }

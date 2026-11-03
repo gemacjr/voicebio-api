@@ -21,39 +21,49 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.client.support.RestClientAdapter;
 import org.springframework.web.service.invoker.HttpServiceProxyFactory;
 
-/** The generated {@link GtfsRealtimeClient} decoding binary protobuf, with the feed replaced by a mock server. */
+/**
+ * The generated {@link GtfsRealtimeClient} decoding binary protobuf, with the feed replaced by a
+ * mock server.
+ */
 class TransitClientConfigurationTest {
 
-    private static final String BASE_URL = "https://feed.test";
+  private static final String BASE_URL = "https://feed.test";
 
-    private MockRestServiceServer server;
-    private GtfsRealtimeClient client;
+  private MockRestServiceServer server;
+  private GtfsRealtimeClient client;
 
-    @BeforeEach
-    void setUp() {
-        RestClient.Builder builder = TransitClientConfiguration.customize(RestClient.builder().baseUrl(BASE_URL));
-        server = MockRestServiceServer.bindTo(builder).build();
-        client = HttpServiceProxyFactory.builderFor(RestClientAdapter.create(builder.build())).build().createClient(GtfsRealtimeClient.class);
-    }
+  @BeforeEach
+  void setUp() {
+    RestClient.Builder builder =
+        TransitClientConfiguration.customize(RestClient.builder().baseUrl(BASE_URL));
+    server = MockRestServiceServer.bindTo(builder).build();
+    client =
+        HttpServiceProxyFactory.builderFor(RestClientAdapter.create(builder.build()))
+            .build()
+            .createClient(GtfsRealtimeClient.class);
+  }
 
-    @Test
-    void decodesBinaryProtobufIntoTheGeneratedClass() {
-        server
-            .expect(requestTo(BASE_URL + "/realtime/VehiclePositions.pb"))
-            .andExpect(method(HttpMethod.GET))
-            .andExpect(header("Accept", MediaType.APPLICATION_PROTOBUF_VALUE))
-            .andRespond(withSuccess(GtfsFixtures.vehiclePositionsBytes(), MediaType.APPLICATION_PROTOBUF));
+  @Test
+  void decodesBinaryProtobufIntoTheGeneratedClass() {
+    server
+        .expect(requestTo(BASE_URL + "/realtime/VehiclePositions.pb"))
+        .andExpect(method(HttpMethod.GET))
+        .andExpect(header("Accept", MediaType.APPLICATION_PROTOBUF_VALUE))
+        .andRespond(
+            withSuccess(GtfsFixtures.vehiclePositionsBytes(), MediaType.APPLICATION_PROTOBUF));
 
-        assertThat(client.vehiclePositions()).isEqualTo(GtfsFixtures.vehiclePositions());
-        server.verify();
-    }
+    assertThat(client.vehiclePositions()).isEqualTo(GtfsFixtures.vehiclePositions());
+    server.verify();
+  }
 
-    @Test
-    void upstreamErrorBecomesTransitFeedException() {
-        server.expect(requestTo(BASE_URL + "/realtime/VehiclePositions.pb")).andRespond(withStatus(HttpStatus.SERVICE_UNAVAILABLE));
+  @Test
+  void upstreamErrorBecomesTransitFeedException() {
+    server
+        .expect(requestTo(BASE_URL + "/realtime/VehiclePositions.pb"))
+        .andRespond(withStatus(HttpStatus.SERVICE_UNAVAILABLE));
 
-        assertThatThrownBy(() -> client.vehiclePositions())
-            .isInstanceOf(TransitFeedException.class)
-            .hasMessage("Transit feed returned HTTP 503 for /realtime/VehiclePositions.pb");
-    }
+    assertThatThrownBy(() -> client.vehiclePositions())
+        .isInstanceOf(TransitFeedException.class)
+        .hasMessage("Transit feed returned HTTP 503 for /realtime/VehiclePositions.pb");
+  }
 }

@@ -1,11 +1,9 @@
 package com.example.config;
 
-/**
- * Application constants.
- */
+/** Application constants. */
 public final class Constants {
 
-    public static final String DEFAULT_LANGUAGE = "en";
+  public static final String DEFAULT_LANGUAGE = "en";
 
-    private Constants() {}
+  private Constants() {}
 }

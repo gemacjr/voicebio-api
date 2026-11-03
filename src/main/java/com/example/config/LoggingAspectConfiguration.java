@@ -9,9 +9,9 @@ import org.springframework.core.env.Environment;
 @EnableAspectJAutoProxy
 public class LoggingAspectConfiguration {
 
-    @Bean
-    @Profile(SpringProfiles.DEVELOPMENT)
-    public LoggingAspect loggingAspect(Environment env) {
-        return new LoggingAspect(env);
-    }
+  @Bean
+  @Profile(SpringProfiles.DEVELOPMENT)
+  public LoggingAspect loggingAspect(Environment env) {
+    return new LoggingAspect(env);
+  }
 }

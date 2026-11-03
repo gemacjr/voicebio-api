@@ -8,15 +8,17 @@ import org.junit.jupiter.api.ClassOrdererContext;
 
 public class SpringBootTestClassOrderer implements ClassOrderer {
 
-    @Override
-    public void orderClasses(ClassOrdererContext context) {
-        context.getClassDescriptors().sort(Comparator.comparingInt(SpringBootTestClassOrderer::getOrder));
-    }
+  @Override
+  public void orderClasses(ClassOrdererContext context) {
+    context
+        .getClassDescriptors()
+        .sort(Comparator.comparingInt(SpringBootTestClassOrderer::getOrder));
+  }
 
-    private static int getOrder(ClassDescriptor classDescriptor) {
-        if (classDescriptor.findAnnotation(IntegrationTest.class).isPresent()) {
-            return 2;
-        }
-        return 1;
+  private static int getOrder(ClassDescriptor classDescriptor) {
+    if (classDescriptor.findAnnotation(IntegrationTest.class).isPresent()) {
+      return 2;
     }
+    return 1;
+  }
 }

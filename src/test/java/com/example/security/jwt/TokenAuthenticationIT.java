@@ -15,41 +15,40 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 @AuthenticationIntegrationTest
 class TokenAuthenticationIT {
 
-    @Autowired
-    private MockMvc mvc;
+  @Autowired private MockMvc mvc;
 
-    @Value("${application.security.jwt.base64-secret}")
-    private String jwtKey;
+  @Value("${application.security.jwt.base64-secret}")
+  private String jwtKey;
 
-    @Test
-    void testLoginWithValidToken() throws Exception {
-        expectOk(createValidToken(jwtKey));
-    }
+  @Test
+  void testLoginWithValidToken() throws Exception {
+    expectOk(createValidToken(jwtKey));
+  }
 
-    @Test
-    void testReturnFalseWhenJWThasInvalidSignature() throws Exception {
-        expectUnauthorized(createTokenWithDifferentSignature());
-    }
+  @Test
+  void testReturnFalseWhenJWThasInvalidSignature() throws Exception {
+    expectUnauthorized(createTokenWithDifferentSignature());
+  }
 
-    @Test
-    void testReturnFalseWhenJWTisMalformed() throws Exception {
-        expectUnauthorized(createSignedInvalidJwt(jwtKey));
-    }
+  @Test
+  void testReturnFalseWhenJWTisMalformed() throws Exception {
+    expectUnauthorized(createSignedInvalidJwt(jwtKey));
+  }
 
-    @Test
-    void testReturnFalseWhenJWTisExpired() throws Exception {
-        expectUnauthorized(createExpiredToken(jwtKey));
-    }
+  @Test
+  void testReturnFalseWhenJWTisExpired() throws Exception {
+    expectUnauthorized(createExpiredToken(jwtKey));
+  }
 
-    private void expectOk(String token) throws Exception {
-        mvc.perform(MockMvcRequestBuilders.get("/api/authenticate").header(AUTHORIZATION, BEARER + token)).andExpect(
-            status().isNoContent()
-        );
-    }
+  private void expectOk(String token) throws Exception {
+    mvc.perform(
+            MockMvcRequestBuilders.get("/api/authenticate").header(AUTHORIZATION, BEARER + token))
+        .andExpect(status().isNoContent());
+  }
 
-    private void expectUnauthorized(String token) throws Exception {
-        mvc.perform(MockMvcRequestBuilders.get("/api/authenticate").header(AUTHORIZATION, BEARER + token)).andExpect(
-            status().isUnauthorized()
-        );
-    }
+  private void expectUnauthorized(String token) throws Exception {
+    mvc.perform(
+            MockMvcRequestBuilders.get("/api/authenticate").header(AUTHORIZATION, BEARER + token))
+        .andExpect(status().isUnauthorized());
+  }
 }

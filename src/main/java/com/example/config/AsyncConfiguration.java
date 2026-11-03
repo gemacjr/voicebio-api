@@ -20,27 +20,27 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 @Slf4j
 public class AsyncConfiguration implements AsyncConfigurer {
 
-    private final TaskExecutionProperties taskExecutionProperties;
+  private final TaskExecutionProperties taskExecutionProperties;
 
-    public AsyncConfiguration(TaskExecutionProperties taskExecutionProperties) {
-        this.taskExecutionProperties = taskExecutionProperties;
-    }
+  public AsyncConfiguration(TaskExecutionProperties taskExecutionProperties) {
+    this.taskExecutionProperties = taskExecutionProperties;
+  }
 
-    @Override
-    @Bean(name = "taskExecutor")
-    public Executor getAsyncExecutor() {
-        log.debug("Creating Async Task Executor");
-        var executor = new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(taskExecutionProperties.getPool().getCoreSize());
-        executor.setMaxPoolSize(taskExecutionProperties.getPool().getMaxSize());
-        executor.setQueueCapacity(taskExecutionProperties.getPool().getQueueCapacity());
-        executor.setThreadNamePrefix(taskExecutionProperties.getThreadNamePrefix());
-        executor.setTaskDecorator(new MdcTaskDecorator());
-        return executor;
-    }
+  @Override
+  @Bean(name = "taskExecutor")
+  public Executor getAsyncExecutor() {
+    log.debug("Creating Async Task Executor");
+    var executor = new ThreadPoolTaskExecutor();
+    executor.setCorePoolSize(taskExecutionProperties.getPool().getCoreSize());
+    executor.setMaxPoolSize(taskExecutionProperties.getPool().getMaxSize());
+    executor.setQueueCapacity(taskExecutionProperties.getPool().getQueueCapacity());
+    executor.setThreadNamePrefix(taskExecutionProperties.getThreadNamePrefix());
+    executor.setTaskDecorator(new MdcTaskDecorator());
+    return executor;
+  }
 
-    @Override
-    public AsyncUncaughtExceptionHandler getAsyncUncaughtExceptionHandler() {
-        return new SimpleAsyncUncaughtExceptionHandler();
-    }
+  @Override
+  public AsyncUncaughtExceptionHandler getAsyncUncaughtExceptionHandler() {
+    return new SimpleAsyncUncaughtExceptionHandler();
+  }
 }

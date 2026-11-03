@@ -1,4 +1,2 @@
-/**
- * Logging aspect.
- */
+/** Logging aspect. */
 package com.example.aop.logging;

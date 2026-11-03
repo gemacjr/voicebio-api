@@ -1,4 +1,2 @@
-/**
- * Application management.
- */
+/** Application management. */
 package com.example.management;

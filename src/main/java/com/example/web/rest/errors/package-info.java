@@ -1,4 +1,2 @@
-/**
- * Rest layer error handling.
- */
+/** Rest layer error handling. */
 package com.example.web.rest.errors;

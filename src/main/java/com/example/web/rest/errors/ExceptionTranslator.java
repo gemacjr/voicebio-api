@@ -27,269 +27,297 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.ErrorResponse;
 import org.springframework.web.ErrorResponseException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 /**
- * Controller advice to translate the server side exceptions to client-friendly json structures.
- * The error response follows RFC7807 - Problem Details for HTTP APIs (https://tools.ietf.org/html/rfc7807).
+ * Controller advice to translate the server side exceptions to client-friendly json structures. The
+ * error response follows RFC7807 - Problem Details for HTTP APIs
+ * (https://tools.ietf.org/html/rfc7807).
  */
 @ControllerAdvice
 @Slf4j
 public class ExceptionTranslator extends ResponseEntityExceptionHandler {
 
-    private static final String FIELD_ERRORS_KEY = "fieldErrors";
-    private static final String MESSAGE_KEY = "message";
-    private static final String PATH_KEY = "path";
-    private static final boolean CAUSAL_CHAIN_ENABLED = false;
+  private static final String FIELD_ERRORS_KEY = "fieldErrors";
+  private static final String MESSAGE_KEY = "message";
+  private static final String PATH_KEY = "path";
+  private static final boolean CAUSAL_CHAIN_ENABLED = false;
 
-    @Value("${spring.application.name:voicebioApi}")
-    private String applicationName;
+  @Value("${spring.application.name:voicebioApi}")
+  private String applicationName;
 
-    private final Environment env;
+  private final Environment env;
 
-    public ExceptionTranslator(Environment env) {
-        this.env = env;
+  public ExceptionTranslator(Environment env) {
+    this.env = env;
+  }
+
+  @ExceptionHandler
+  public ResponseEntity<Object> handleAnyException(Throwable ex, NativeWebRequest request) {
+    log.debug("Converting Exception to Problem Details:", ex);
+    ProblemDetailWithCause pdCause = wrapAndCustomizeProblem(ex, request);
+    return handleExceptionInternal(
+        (Exception) ex,
+        pdCause,
+        new HttpHeaders(),
+        HttpStatusCode.valueOf(pdCause.getStatus()),
+        request);
+  }
+
+  @SuppressWarnings("java:S2638")
+  @Nullable
+  @Override
+  protected ResponseEntity<Object> handleExceptionInternal(
+      Exception ex,
+      @Nullable Object body,
+      HttpHeaders headers,
+      HttpStatusCode statusCode,
+      WebRequest request) {
+    body = body == null ? wrapAndCustomizeProblem(ex, (NativeWebRequest) request) : body;
+    // Added here rather than in handleAnyException: Spring routes ErrorResponseException subclasses
+    // (such as BadRequestAlertException) to its own more specific handler, which only passes
+    // through here.
+    HttpHeaders alertHeaders = buildHeaders(ex);
+    if (alertHeaders != null) {
+      HttpHeaders merged = new HttpHeaders();
+      merged.addAll(headers);
+      merged.addAll(alertHeaders);
+      headers = merged;
+    }
+    return super.handleExceptionInternal(ex, body, headers, statusCode, request);
+  }
+
+  protected ProblemDetailWithCause wrapAndCustomizeProblem(Throwable ex, NativeWebRequest request) {
+    return customizeProblem(getProblemDetailWithCause(ex), ex, request);
+  }
+
+  private ProblemDetailWithCause getProblemDetailWithCause(Throwable ex) {
+    if (ex instanceof ErrorResponseException exp
+        && exp.getBody() instanceof ProblemDetailWithCause problemDetailWithCause)
+      return problemDetailWithCause;
+    return ProblemDetailWithCause.Builder.instance().withStatus(toStatus(ex).value()).build();
+  }
+
+  protected ProblemDetailWithCause customizeProblem(
+      ProblemDetailWithCause problem, Throwable err, NativeWebRequest request) {
+    if (problem.getStatus() <= 0) problem.setStatus(toStatus(err));
+
+    if (problem.getType() == null || problem.getType().equals(URI.create("about:blank")))
+      problem.setType(getMappedType(err));
+
+    // higher precedence to Custom/ResponseStatus types
+    String title = extractTitle(err, problem.getStatus());
+    String problemTitle = problem.getTitle();
+    if (problemTitle == null || !problemTitle.equals(title)) {
+      problem.setTitle(title);
     }
 
-    @ExceptionHandler
-    public ResponseEntity<Object> handleAnyException(Throwable ex, NativeWebRequest request) {
-        log.debug("Converting Exception to Problem Details:", ex);
-        ProblemDetailWithCause pdCause = wrapAndCustomizeProblem(ex, request);
-        return handleExceptionInternal((Exception) ex, pdCause, new HttpHeaders(), HttpStatusCode.valueOf(pdCause.getStatus()), request);
+    if (problem.getDetail() == null) {
+      // higher precedence to cause
+      problem.setDetail(getCustomizedErrorDetails(err));
     }
 
-    @SuppressWarnings("java:S2638")
-    @Nullable
-    @Override
-    protected ResponseEntity<Object> handleExceptionInternal(
-        Exception ex,
-        @Nullable Object body,
-        HttpHeaders headers,
-        HttpStatusCode statusCode,
-        WebRequest request
-    ) {
-        body = body == null ? wrapAndCustomizeProblem(ex, (NativeWebRequest) request) : body;
-        // Added here rather than in handleAnyException: Spring routes ErrorResponseException subclasses
-        // (such as BadRequestAlertException) to its own more specific handler, which only passes through here.
-        HttpHeaders alertHeaders = buildHeaders(ex);
-        if (alertHeaders != null) {
-            HttpHeaders merged = new HttpHeaders();
-            merged.addAll(headers);
-            merged.addAll(alertHeaders);
-            headers = merged;
-        }
-        return super.handleExceptionInternal(ex, body, headers, statusCode, request);
+    Map<String, Object> problemProperties = problem.getProperties();
+    if (problemProperties == null || !problemProperties.containsKey(MESSAGE_KEY))
+      problem.setProperty(
+          MESSAGE_KEY,
+          getMappedMessageKey(err) != null
+              ? getMappedMessageKey(err)
+              : "error.http." + problem.getStatus());
+
+    if (problemProperties == null || !problemProperties.containsKey(PATH_KEY))
+      problem.setProperty(PATH_KEY, getPathValue(request));
+
+    if (err instanceof MethodArgumentNotValidException fieldException
+        && (problemProperties == null || !problemProperties.containsKey(FIELD_ERRORS_KEY)))
+      problem.setProperty(FIELD_ERRORS_KEY, getFieldErrors(fieldException));
+
+    if (err instanceof HandlerMethodValidationException parameterException
+        && (problemProperties == null || !problemProperties.containsKey(FIELD_ERRORS_KEY))) {
+      problem.setProperty(FIELD_ERRORS_KEY, getParameterErrors(parameterException));
+      problem.setDetail("Invalid request parameters");
     }
 
-    protected ProblemDetailWithCause wrapAndCustomizeProblem(Throwable ex, NativeWebRequest request) {
-        return customizeProblem(getProblemDetailWithCause(ex), ex, request);
-    }
+    problem.setCause(buildCause(err.getCause(), request).orElse(null));
 
-    private ProblemDetailWithCause getProblemDetailWithCause(Throwable ex) {
-        if (
-            ex instanceof ErrorResponseException exp && exp.getBody() instanceof ProblemDetailWithCause problemDetailWithCause
-        ) return problemDetailWithCause;
-        return ProblemDetailWithCause.Builder.instance().withStatus(toStatus(ex).value()).build();
-    }
+    return problem;
+  }
 
-    protected ProblemDetailWithCause customizeProblem(ProblemDetailWithCause problem, Throwable err, NativeWebRequest request) {
-        if (problem.getStatus() <= 0) problem.setStatus(toStatus(err));
+  private String extractTitle(Throwable err, int statusCode) {
+    return getCustomizedTitle(err) != null
+        ? getCustomizedTitle(err)
+        : extractTitleForResponseStatus(err, statusCode);
+  }
 
-        if (problem.getType() == null || problem.getType().equals(URI.create("about:blank"))) problem.setType(getMappedType(err));
-
-        // higher precedence to Custom/ResponseStatus types
-        String title = extractTitle(err, problem.getStatus());
-        String problemTitle = problem.getTitle();
-        if (problemTitle == null || !problemTitle.equals(title)) {
-            problem.setTitle(title);
-        }
-
-        if (problem.getDetail() == null) {
-            // higher precedence to cause
-            problem.setDetail(getCustomizedErrorDetails(err));
-        }
-
-        Map<String, Object> problemProperties = problem.getProperties();
-        if (problemProperties == null || !problemProperties.containsKey(MESSAGE_KEY)) problem.setProperty(
-            MESSAGE_KEY,
-            getMappedMessageKey(err) != null ? getMappedMessageKey(err) : "error.http." + problem.getStatus()
-        );
-
-        if (problemProperties == null || !problemProperties.containsKey(PATH_KEY)) problem.setProperty(PATH_KEY, getPathValue(request));
-
-        if (
-            err instanceof MethodArgumentNotValidException fieldException &&
-            (problemProperties == null || !problemProperties.containsKey(FIELD_ERRORS_KEY))
-        ) problem.setProperty(FIELD_ERRORS_KEY, getFieldErrors(fieldException));
-
-        if (
-            err instanceof HandlerMethodValidationException parameterException &&
-            (problemProperties == null || !problemProperties.containsKey(FIELD_ERRORS_KEY))
-        ) {
-            problem.setProperty(FIELD_ERRORS_KEY, getParameterErrors(parameterException));
-            problem.setDetail("Invalid request parameters");
-        }
-
-        problem.setCause(buildCause(err.getCause(), request).orElse(null));
-
-        return problem;
-    }
-
-    private String extractTitle(Throwable err, int statusCode) {
-        return getCustomizedTitle(err) != null ? getCustomizedTitle(err) : extractTitleForResponseStatus(err, statusCode);
-    }
-
-    private List<FieldErrorVM> getFieldErrors(MethodArgumentNotValidException ex) {
-        return ex
-            .getBindingResult()
-            .getFieldErrors()
-            .stream()
-            .map(f ->
+  private List<FieldErrorVM> getFieldErrors(MethodArgumentNotValidException ex) {
+    return ex.getBindingResult().getFieldErrors().stream()
+        .map(
+            f ->
                 new FieldErrorVM(
                     f.getObjectName().replaceFirst("DTO$", ""),
                     f.getField(),
-                    StringUtils.isNotBlank(f.getDefaultMessage()) ? f.getDefaultMessage() : f.getCode()
-                )
-            )
-            .toList();
-    }
+                    StringUtils.isNotBlank(f.getDefaultMessage())
+                        ? f.getDefaultMessage()
+                        : f.getCode()))
+        .toList();
+  }
 
-    /** Errors on @RequestParam / @PathVariable constraints (e.g. {@code @Min(1) int limit}), same shape as body field errors. */
-    private List<FieldErrorVM> getParameterErrors(HandlerMethodValidationException ex) {
-        return ex
-            .getParameterValidationResults()
-            .stream()
-            .flatMap(result ->
-                result
-                    .getResolvableErrors()
-                    .stream()
-                    .map(error ->
-                        new FieldErrorVM(
-                            "request",
-                            result.getMethodParameter().getParameterName(),
-                            StringUtils.isNotBlank(error.getDefaultMessage()) ? error.getDefaultMessage() : "invalid"
-                        )
-                    )
-            )
-            .toList();
-    }
+  /**
+   * Errors on @RequestParam / @PathVariable constraints (e.g. {@code @Min(1) int limit}), same
+   * shape as body field errors.
+   */
+  private List<FieldErrorVM> getParameterErrors(HandlerMethodValidationException ex) {
+    return ex.getParameterValidationResults().stream()
+        .flatMap(
+            result ->
+                result.getResolvableErrors().stream()
+                    .map(
+                        error ->
+                            new FieldErrorVM(
+                                "request",
+                                result.getMethodParameter().getParameterName(),
+                                StringUtils.isNotBlank(error.getDefaultMessage())
+                                    ? error.getDefaultMessage()
+                                    : "invalid")))
+        .toList();
+  }
 
-    /** Request validation failures, whether on a request body, a parameter, or a method constraint. */
-    private static boolean isValidationError(Throwable err) {
-        return (
-            err instanceof MethodArgumentNotValidException ||
-            err instanceof ConstraintViolationException ||
-            err instanceof HandlerMethodValidationException
-        );
-    }
+  /**
+   * Request validation failures, whether on a request body, a parameter, or a method constraint.
+   */
+  private static boolean isValidationError(Throwable err) {
+    return (err instanceof MethodArgumentNotValidException
+        || err instanceof ConstraintViolationException
+        || err instanceof HandlerMethodValidationException);
+  }
 
-    private String extractTitleForResponseStatus(Throwable err, int statusCode) {
-        var specialStatus = extractResponseStatus(err);
-        return specialStatus == null ? HttpStatus.valueOf(statusCode).getReasonPhrase() : specialStatus.reason();
-    }
+  private String extractTitleForResponseStatus(Throwable err, int statusCode) {
+    var specialStatus = extractResponseStatus(err);
+    return specialStatus == null
+        ? HttpStatus.valueOf(statusCode).getReasonPhrase()
+        : specialStatus.reason();
+  }
 
-    private String extractURI(NativeWebRequest request) {
-        HttpServletRequest nativeRequest = request.getNativeRequest(HttpServletRequest.class);
-        return nativeRequest != null ? nativeRequest.getRequestURI() : StringUtils.EMPTY;
-    }
+  private String extractURI(NativeWebRequest request) {
+    HttpServletRequest nativeRequest = request.getNativeRequest(HttpServletRequest.class);
+    return nativeRequest != null ? nativeRequest.getRequestURI() : StringUtils.EMPTY;
+  }
 
-    private HttpStatus toStatus(final Throwable throwable) {
-        // Let the ErrorResponse take this responsibility
-        if (throwable instanceof ErrorResponse err) return HttpStatus.valueOf(err.getBody().getStatus());
+  private HttpStatus toStatus(final Throwable throwable) {
+    // Let the ErrorResponse take this responsibility
+    if (throwable instanceof ErrorResponse err)
+      return HttpStatus.valueOf(err.getBody().getStatus());
 
-        return Optional.ofNullable(getMappedStatus(throwable)).orElse(
-            Optional.ofNullable(resolveResponseStatus(throwable)).map(ResponseStatus::value).orElse(HttpStatus.INTERNAL_SERVER_ERROR)
-        );
-    }
+    return Optional.ofNullable(getMappedStatus(throwable))
+        .orElse(
+            Optional.ofNullable(resolveResponseStatus(throwable))
+                .map(ResponseStatus::value)
+                .orElse(HttpStatus.INTERNAL_SERVER_ERROR));
+  }
 
-    private ResponseStatus extractResponseStatus(final Throwable throwable) {
-        return resolveResponseStatus(throwable);
-    }
+  private ResponseStatus extractResponseStatus(final Throwable throwable) {
+    return resolveResponseStatus(throwable);
+  }
 
-    private ResponseStatus resolveResponseStatus(final Throwable type) {
-        final ResponseStatus candidate = findMergedAnnotation(type.getClass(), ResponseStatus.class);
-        return candidate == null && type.getCause() != null ? resolveResponseStatus(type.getCause()) : candidate;
-    }
+  private ResponseStatus resolveResponseStatus(final Throwable type) {
+    final ResponseStatus candidate = findMergedAnnotation(type.getClass(), ResponseStatus.class);
+    return candidate == null && type.getCause() != null
+        ? resolveResponseStatus(type.getCause())
+        : candidate;
+  }
 
-    private URI getMappedType(Throwable err) {
-        if (isValidationError(err)) return ErrorConstants.CONSTRAINT_VIOLATION_TYPE;
-        return ErrorConstants.DEFAULT_TYPE;
-    }
+  private URI getMappedType(Throwable err) {
+    if (isValidationError(err)) return ErrorConstants.CONSTRAINT_VIOLATION_TYPE;
+    return ErrorConstants.DEFAULT_TYPE;
+  }
 
-    private String getMappedMessageKey(Throwable err) {
-        if (isValidationError(err)) {
-            return ErrorConstants.ERR_VALIDATION;
-        }
-        return null;
+  private String getMappedMessageKey(Throwable err) {
+    if (isValidationError(err)) {
+      return ErrorConstants.ERR_VALIDATION;
     }
+    return null;
+  }
 
-    private String getCustomizedTitle(Throwable err) {
-        if (isValidationError(err)) return "Method argument not valid";
-        return null;
-    }
+  private String getCustomizedTitle(Throwable err) {
+    if (isValidationError(err)) return "Method argument not valid";
+    return null;
+  }
 
-    private String getCustomizedErrorDetails(Throwable err) {
-        Collection<String> activeProfiles = List.of(env.getActiveProfiles());
-        if (activeProfiles.contains(SpringProfiles.PRODUCTION)) {
-            if (err instanceof HttpMessageConversionException) return "Unable to convert http message";
-            if (containsPackageName(err.getMessage())) return "Unexpected runtime exception";
-        }
-        return err.getCause() != null ? err.getCause().getMessage() : err.getMessage();
+  private String getCustomizedErrorDetails(Throwable err) {
+    Collection<String> activeProfiles = List.of(env.getActiveProfiles());
+    if (activeProfiles.contains(SpringProfiles.PRODUCTION)) {
+      if (err instanceof HttpMessageConversionException) return "Unable to convert http message";
+      if (containsPackageName(err.getMessage())) return "Unexpected runtime exception";
     }
+    return err.getCause() != null ? err.getCause().getMessage() : err.getMessage();
+  }
 
-    private HttpStatus getMappedStatus(Throwable err) {
-        // Where we disagree with Spring defaults
-        if (err instanceof AccessDeniedException) return HttpStatus.FORBIDDEN;
-        if (err instanceof BadCredentialsException) return HttpStatus.UNAUTHORIZED;
-        if (err instanceof ConstraintViolationException) return HttpStatus.BAD_REQUEST;
-        return null;
-    }
+  private HttpStatus getMappedStatus(Throwable err) {
+    // Where we disagree with Spring defaults
+    if (err instanceof AccessDeniedException) return HttpStatus.FORBIDDEN;
+    if (err instanceof BadCredentialsException) return HttpStatus.UNAUTHORIZED;
+    if (err instanceof ConstraintViolationException) return HttpStatus.BAD_REQUEST;
+    return null;
+  }
 
-    private URI getPathValue(NativeWebRequest request) {
-        if (request == null) return URI.create("about:blank");
-        return URI.create(extractURI(request));
-    }
+  private URI getPathValue(NativeWebRequest request) {
+    if (request == null) return URI.create("about:blank");
+    return URI.create(extractURI(request));
+  }
 
-    private HttpHeaders buildHeaders(Throwable err) {
-        if (err instanceof BadRequestAlertException badRequestAlertException) {
-            return createFailureAlertHeaders(badRequestAlertException.getEntityName(), badRequestAlertException.getErrorKey());
-        }
-        if (err instanceof RetryableFailure retryable) {
-            HttpHeaders headers = new HttpHeaders();
-            headers.set(HttpHeaders.RETRY_AFTER, String.valueOf(retryable.retryAfterSeconds()));
-            return headers;
-        }
-        return null;
+  private HttpHeaders buildHeaders(Throwable err) {
+    if (err instanceof BadRequestAlertException badRequestAlertException) {
+      return createFailureAlertHeaders(
+          badRequestAlertException.getEntityName(), badRequestAlertException.getErrorKey());
     }
+    if (err instanceof RetryableFailure retryable) {
+      HttpHeaders headers = new HttpHeaders();
+      headers.set(HttpHeaders.RETRY_AFTER, String.valueOf(retryable.retryAfterSeconds()));
+      return headers;
+    }
+    return null;
+  }
 
-    private HttpHeaders createFailureAlertHeaders(String entityName, String errorKey) {
-        log.error("Entity processing failed, {}", errorKey);
-        HttpHeaders headers = new HttpHeaders();
-        headers.add("X-" + applicationName + "-error", "error." + errorKey);
-        headers.add("X-" + applicationName + "-params", entityName);
-        return headers;
-    }
+  private HttpHeaders createFailureAlertHeaders(String entityName, String errorKey) {
+    log.error("Entity processing failed, {}", errorKey);
+    HttpHeaders headers = new HttpHeaders();
+    headers.add("X-" + applicationName + "-error", "error." + errorKey);
+    headers.add("X-" + applicationName + "-params", entityName);
+    return headers;
+  }
 
-    public Optional<ProblemDetailWithCause> buildCause(final Throwable throwable, NativeWebRequest request) {
-        if (throwable != null && isCausalChainEnabled()) {
-            return Optional.of(customizeProblem(getProblemDetailWithCause(throwable), throwable, request));
-        }
-        return Optional.empty();
+  public Optional<ProblemDetailWithCause> buildCause(
+      final Throwable throwable, NativeWebRequest request) {
+    if (throwable != null && isCausalChainEnabled()) {
+      return Optional.of(
+          customizeProblem(getProblemDetailWithCause(throwable), throwable, request));
     }
+    return Optional.empty();
+  }
 
-    private boolean isCausalChainEnabled() {
-        // Customize as per the needs
-        return CAUSAL_CHAIN_ENABLED;
-    }
+  private boolean isCausalChainEnabled() {
+    // Customize as per the needs
+    return CAUSAL_CHAIN_ENABLED;
+  }
 
-    private boolean containsPackageName(String message) {
-        // This list is for sure not complete
-        return Strings.CS.containsAny(message, "org.", "java.", "net.", "jakarta.", "javax.", "com.", "io.", "de.", "com.example");
-    }
+  private boolean containsPackageName(String message) {
+    // This list is for sure not complete
+    return Strings.CS.containsAny(
+        message,
+        "org.",
+        "java.",
+        "net.",
+        "jakarta.",
+        "javax.",
+        "com.",
+        "io.",
+        "de.",
+        "com.example");
+  }
 }

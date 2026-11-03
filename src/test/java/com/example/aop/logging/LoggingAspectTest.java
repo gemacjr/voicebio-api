@@ -22,81 +22,86 @@ import org.springframework.core.env.Profiles;
 
 class LoggingAspectTest {
 
-    private static final String DECLARING_TYPE = "com.example.service.LoggedService";
-    private static final String METHOD = "loggedMethod";
+  private static final String DECLARING_TYPE = "com.example.service.LoggedService";
+  private static final String METHOD = "loggedMethod";
 
-    private final Environment env = mock(Environment.class);
-    private final ProceedingJoinPoint joinPoint = mock(ProceedingJoinPoint.class);
-    private final ListAppender<ILoggingEvent> appender = new ListAppender<>();
-    private LoggingAspect aspect;
-    private Logger logger;
+  private final Environment env = mock(Environment.class);
+  private final ProceedingJoinPoint joinPoint = mock(ProceedingJoinPoint.class);
+  private final ListAppender<ILoggingEvent> appender = new ListAppender<>();
+  private LoggingAspect aspect;
+  private Logger logger;
 
-    @BeforeEach
-    void setup() {
-        Signature signature = mock(Signature.class);
-        when(signature.getDeclaringTypeName()).thenReturn(DECLARING_TYPE);
-        when(signature.getName()).thenReturn(METHOD);
-        when(joinPoint.getSignature()).thenReturn(signature);
-        when(joinPoint.getArgs()).thenReturn(new Object[] { "arg" });
-        when(env.acceptsProfiles(any(Profiles.class))).thenReturn(true);
+  @BeforeEach
+  void setup() {
+    Signature signature = mock(Signature.class);
+    when(signature.getDeclaringTypeName()).thenReturn(DECLARING_TYPE);
+    when(signature.getName()).thenReturn(METHOD);
+    when(joinPoint.getSignature()).thenReturn(signature);
+    when(joinPoint.getArgs()).thenReturn(new Object[] {"arg"});
+    when(env.acceptsProfiles(any(Profiles.class))).thenReturn(true);
 
-        logger = (Logger) LoggerFactory.getLogger(DECLARING_TYPE);
-        logger.setLevel(Level.DEBUG);
-        appender.start();
-        logger.addAppender(appender);
+    logger = (Logger) LoggerFactory.getLogger(DECLARING_TYPE);
+    logger.setLevel(Level.DEBUG);
+    appender.start();
+    logger.addAppender(appender);
 
-        aspect = new LoggingAspect(env);
-    }
+    aspect = new LoggingAspect(env);
+  }
 
-    @AfterEach
-    void teardown() {
-        logger.detachAppender(appender);
-        logger.setLevel(null);
-    }
+  @AfterEach
+  void teardown() {
+    logger.detachAppender(appender);
+    logger.setLevel(null);
+  }
 
-    private List<String> messages() {
-        return appender.list.stream().map(ILoggingEvent::getFormattedMessage).toList();
-    }
+  private List<String> messages() {
+    return appender.list.stream().map(ILoggingEvent::getFormattedMessage).toList();
+  }
 
-    @Test
-    void logAroundLogsEnterAndExit() throws Throwable {
-        when(joinPoint.proceed()).thenReturn("result");
+  @Test
+  void logAroundLogsEnterAndExit() throws Throwable {
+    when(joinPoint.proceed()).thenReturn("result");
 
-        Object result = aspect.logAround(joinPoint);
+    Object result = aspect.logAround(joinPoint);
 
-        assertThat(result).isEqualTo("result");
-        assertThat(messages()).containsExactly(
+    assertThat(result).isEqualTo("result");
+    assertThat(messages())
+        .containsExactly(
             "Enter: loggedMethod() with argument[s] = [arg]",
-            "Exit: loggedMethod() with result = result"
-        );
-    }
+            "Exit: loggedMethod() with result = result");
+  }
 
-    @Test
-    void logAroundRethrowsIllegalArgumentException() throws Throwable {
-        when(joinPoint.proceed()).thenThrow(new IllegalArgumentException("invalid"));
+  @Test
+  void logAroundRethrowsIllegalArgumentException() throws Throwable {
+    when(joinPoint.proceed()).thenThrow(new IllegalArgumentException("invalid"));
 
-        assertThatThrownBy(() -> aspect.logAround(joinPoint))
-            .isInstanceOf(IllegalArgumentException.class)
-            .hasMessage("invalid");
+    assertThatThrownBy(() -> aspect.logAround(joinPoint))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("invalid");
 
-        assertThat(messages()).contains("Illegal argument: [arg] in loggedMethod()");
-    }
+    assertThat(messages()).contains("Illegal argument: [arg] in loggedMethod()");
+  }
 
-    @Test
-    void logAfterThrowingLogsExceptionWithStackTraceInDevProfile() {
-        aspect.logAfterThrowing(joinPoint, new IllegalStateException("failed"));
+  @Test
+  void logAfterThrowingLogsExceptionWithStackTraceInDevProfile() {
+    aspect.logAfterThrowing(joinPoint, new IllegalStateException("failed"));
 
-        assertThat(messages()).containsExactly("Exception in loggedMethod() with cause = 'NULL' and exception = 'failed'");
-        assertThat(appender.list.getFirst().getThrowableProxy()).isNotNull();
-    }
+    assertThat(messages())
+        .containsExactly(
+            "Exception in loggedMethod() with cause = 'NULL' and exception = 'failed'");
+    assertThat(appender.list.getFirst().getThrowableProxy()).isNotNull();
+  }
 
-    @Test
-    void logAfterThrowingLogsCauseOnlyOutsideDevProfile() {
-        when(env.acceptsProfiles(any(Profiles.class))).thenReturn(false);
+  @Test
+  void logAfterThrowingLogsCauseOnlyOutsideDevProfile() {
+    when(env.acceptsProfiles(any(Profiles.class))).thenReturn(false);
 
-        aspect.logAfterThrowing(joinPoint, new IllegalStateException("failed", new RuntimeException("root")));
+    aspect.logAfterThrowing(
+        joinPoint, new IllegalStateException("failed", new RuntimeException("root")));
 
-        assertThat(messages()).containsExactly("Exception in loggedMethod() with cause = java.lang.RuntimeException: root");
-        assertThat(appender.list.getFirst().getThrowableProxy()).isNull();
-    }
+    assertThat(messages())
+        .containsExactly(
+            "Exception in loggedMethod() with cause = java.lang.RuntimeException: root");
+    assertThat(appender.list.getFirst().getThrowableProxy()).isNull();
+  }
 }
