@@ -1,5 +1,7 @@
 # Voicebio API
 
+[![CI](https://github.com/gemacjr/voicebio-api/actions/workflows/ci.yml/badge.svg)](https://github.com/gemacjr/voicebio-api/actions/workflows/ci.yml)
+
 Spring Boot 4 REST microservice on **Java 21**. A stateless JWT resource server meant to sit behind a gateway, serving
 Boston (MBTA) public transit data from a REST API and a Protocol Buffers feed.
 
@@ -99,6 +101,12 @@ Load test (app running with `dev`):
 ```bash
 ./mvnw gatling:test -Dgatling.simulationClass=gatling.simulations.MbtaSimulation -Dusers=20 -Dramp=10
 ```
+
+## Continuous integration
+
+GitHub Actions ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs on every push to `main` and every pull
+request: `./mvnw -Pprod verify` on JDK 21 (formatting check, unit and integration tests, Karate against mocked MBTA
+APIs), then builds the container image without pushing it. Test reports are uploaded as an artifact.
 
 ## Building for production
 

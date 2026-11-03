@@ -185,6 +185,28 @@ with a comment saying why. Check before upgrading either one.
 IDE: install the google-java-format plugin (IntelliJ) or the "Language Support for Java" formatter with the Google style
 (VS Code) so the editor formats the same way; `spotless:apply` remains the reference.
 
+## Continuous integration (GitHub Actions)
+
+`.github/workflows/ci.yml` runs on every push to `main`, every pull request, and on demand:
+
+```mermaid
+flowchart LR
+    co[checkout] --> jdk["JDK 21 (Temurin)<br/>+ Maven cache"] --> verify["./mvnw -Pprod verify"] --> img["jib:buildTar<br/>(image built, not pushed)"] --> rep["upload test reports"]
+```
+
+`./mvnw -Pprod verify` is the same command developers run, so CI cannot pass for different reasons than a laptop does:
+enforcer (JDK 21), `spotless:check`, protoc, unit tests, integration tests including Karate against **mocked** MBTA
+APIs, Checkstyle and Modernizer.
+
+| Design choice | Why |
+|---|---|
+| Actions pinned to a commit SHA (`actions/checkout@3d3c42e…  # v7.0.1`) | A tag can be moved to different code; a SHA cannot. Update deliberately. |
+| `permissions: contents: read` | The job only reads the repository; least privilege for the token |
+| `concurrency` with `cancel-in-progress` | A newer push to the same branch cancels the outdated run |
+| `paths-ignore: docs/**, bruno/**, **/*.md` | Documentation changes do not need a build (GitHub Pages builds them separately) |
+| No live MBTA tests | Third-party availability and its 20 requests/minute limit must not make CI flaky; run `KarateLiveIT` and Bruno on demand |
+| Test reports uploaded even on failure (`if: always()`) | Diagnose failures from the run page: Surefire, Failsafe and Karate HTML reports |
+
 ## Container images with Jib
 
 There is **no Dockerfile**. [Jib](https://github.com/GoogleContainerTools/jib) builds the image straight from the
