@@ -1,6 +1,6 @@
 ---
 title: Best-practice checklist
-nav_order: 17
+nav_order: 16
 description: A consolidated Spring Boot design checklist to use in reviews, with links to the detailed pages.
 ---
 

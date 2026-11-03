@@ -43,8 +43,7 @@ Every cross-cutting concern a real service needs is implemented on top, so the t
 | Tests | Unit, integration, Karate API, architecture, BDD, load | [Testing](testing.md) |
 | Build and containers | Maven on JDK 21, Jib images, Docker Compose | [Build and deploy](build-and-deploy.md) |
 
-Also: a [Demo guide](demo-guide.md), a [Best-practice checklist](best-practices.md), and the
-[JHipster migration notes](jhipster-migration.md).
+Also: a [Demo guide](demo-guide.md) and a [Best-practice checklist](best-practices.md).
 
 ## Architecture at a glance
 

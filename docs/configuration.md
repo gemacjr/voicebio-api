@@ -134,8 +134,8 @@ Why `@ConfigurationProperties` instead of scattered `@Value("${...}")`:
 | Testing | `new ApplicationProperties()` in a unit test | Needs a Spring context |
 
 {: .lesson }
-`ignoreUnknownFields = false` caught real mistakes during development: a leftover key from the old `jhipster.*`
-namespace fails fast at startup instead of being ignored in production.
+`ignoreUnknownFields = false` caught real mistakes during development: a misspelled or outdated key under
+`application.*` fails fast at startup instead of being ignored in production.
 
 ## Prefer Spring Boot's own properties
 
