@@ -44,7 +44,6 @@ the right JDK automatically.
 | Run locally (dev) | `./mvnw` (default goal `spring-boot:run`) |
 | Unit + integration tests | `./mvnw verify` |
 | Production jar | `./mvnw -Pprod clean verify` → `target/voicebio-api-0.0.1-SNAPSHOT.jar` |
-| Production WAR | `./mvnw -Pprod,war clean verify` |
 | Docker image (local daemon) | `./mvnw -Pprod verify -DskipTests jib:dockerBuild` |
 | Docker image (Apple Silicon) | add `-Djib-maven-plugin.architecture=arm64` |
 | Image as a tarball (no daemon) | `./mvnw -Pprod verify -DskipTests jib:buildTar` |
@@ -59,7 +58,6 @@ the right JDK automatically.
 | `prod` | Spring profile `prod`; adds `git-commit-id` (git info in `/management/info`), cleans `target/classes/static` |
 | `api-docs` | Adds the `api-docs` Spring profile to a prod build |
 | `tls` | Adds the `tls` Spring profile (HTTPS) |
-| `war` | Packages a WAR for external servlet containers (`ApplicationWebXml`) |
 | `IDE` | Puts the MapStruct processor on the IDE classpath |
 
 ## Annotation processors and Lombok

@@ -99,8 +99,6 @@ Load test (app running with `dev`):
 java -jar target/*.jar
 ```
 
-WAR: `./mvnw -Pprod,war clean verify`.
-
 ## Docker
 
 Build an image with [Jib](https://github.com/GoogleContainerTools/jib) (no Dockerfile; base `eclipse-temurin:21-jre`,
